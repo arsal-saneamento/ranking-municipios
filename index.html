@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARSAL — Ranking de Municípios Críticos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --azul:#003B7A;--azul-mid:#1E5FAD;--azul-light:#E8F0FB;
+  --verde:#0A7A4B;--amber:#B45309;--red:#B91C1C;
+  --bg:#F0F4F8;--surface:#fff;--border:#D5DFE8;
+  --text:#0F1C2E;--muted:#5A7090;--subtle:#8FA3B8;
+}
+html{font-size:14px}
+body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* TOP BAR */
+.topbar{background:var(--azul);color:#fff;padding:0 24px;height:58px;display:flex;align-items:center;justify-content:space-between;gap:16px;position:sticky;top:0;z-index:200;box-shadow:0 2px 10px rgba(0,20,60,.3)}
+.topbar-logo{font-size:13px;font-weight:800;letter-spacing:.4px;display:flex;align-items:center;gap:8px;flex-shrink:0}
+.topbar-logo-mark{width:30px;height:30px;background:rgba(255,255,255,.15);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800}
+.topbar-center{text-align:center;flex:1;min-width:0}
+.topbar-title{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topbar-sub{font-size:10px;opacity:.6;margin-top:1px}
+.topbar-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.tag-ciclo{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:6px;padding:3px 9px;font-size:10px;font-weight:600;letter-spacing:.3px;white-space:nowrap}
+.btn-sm{background:#fff;color:var(--azul);border:none;border-radius:7px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;transition:.15s;white-space:nowrap}
+.btn-sm:hover{background:#dbeafe}
+.btn-sm svg{width:13px;height:13px;flex-shrink:0}
+
+/* KPI STRIP */
+.kpi-strip{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;padding:16px 24px 0}
+.kpi{background:var(--surface);border-radius:10px;padding:12px 14px;border-left:3px solid var(--kc,#1E5FAD)}
+.kpi-label{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+.kpi-val{font-size:22px;font-weight:800;line-height:1}
+.kpi-sub{font-size:10px;color:var(--subtle);margin-top:3px}
+
+/* FILTROS */
+.filters{display:flex;flex-wrap:wrap;gap:8px;padding:12px 24px 0;align-items:center}
+.fl{font-size:11px;color:var(--muted);font-weight:600}
+.filters select,.filters input[type=text]{font-size:12px;padding:5px 10px;border:1px solid var(--border);border-radius:7px;background:var(--surface);color:var(--text);outline:none;height:30px}
+.filters select:focus,.filters input:focus{border-color:var(--azul-mid)}
+.filters input[type=text]{width:185px}
+.fsep{width:1px;height:20px;background:var(--border)}
+.btn-pesos{background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:5px 11px;font-size:11px;font-weight:600;color:var(--azul);cursor:pointer;height:30px;transition:.15s}
+.btn-pesos:hover{border-color:var(--azul-mid)}
+
+/* LAYOUT */
+.main{padding:14px 24px 32px;display:grid;grid-template-columns:1fr 330px;gap:14px;align-items:start}
+
+/* TABELA */
+.card{background:var(--surface);border-radius:12px;overflow:hidden;border:1px solid var(--border)}
+.card-head{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.card-head h2{font-size:13px;font-weight:700}
+.count-pill{font-size:11px;color:var(--muted);background:var(--bg);border-radius:20px;padding:2px 9px;font-weight:600}
+
+.table-scroll{overflow-x:auto;width:100%}
+table{width:100%;border-collapse:collapse;font-size:12px;min-width:680px}
+thead th{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;padding:8px 8px 8px 0;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap;cursor:pointer;user-select:none;background:var(--surface)}
+thead th:first-child{padding-left:16px;width:46px}
+thead th:hover{color:var(--azul)}
+.sa::after{content:' ↑';color:var(--azul)}.sd::after{content:' ↓';color:var(--azul)}
+tbody tr{border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:#f5f8fc}
+tbody tr.sel{background:#EBF3FF}
+td{padding:8px 8px 8px 0;vertical-align:middle}
+td:first-child{padding-left:16px}
+
+/* RANK BADGE */
+.rb{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0}
+.r1{background:#FFF0CD;color:#92400E;outline:1.5px solid #F59E0B}
+.r2{background:#EFF6FF;color:#1D4ED8;outline:1.5px solid #93C5FD}
+.r3{background:#F0FDF4;color:#166534;outline:1.5px solid #86EFAC}
+.rn{background:var(--bg);color:var(--muted);font-size:10px}
+
+/* NOME */
+.mn{font-weight:700;display:block;line-height:1.2;white-space:nowrap}
+.mm{font-size:10px;color:var(--muted);display:block;margin-top:1px}
+
+/* BLOCO */
+.bb{font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;letter-spacing:.2px;white-space:nowrap}
+.bA{background:#DBEAFE;color:#1D4ED8}.bB{background:#CCFBF1;color:#0F766E}
+.bC{background:#FFEDD5;color:#9A3412}.bS{background:#F1F5F9;color:#475569}
+
+/* PRESTADORA */
+.pc{font-size:9px;font-weight:600;padding:2px 6px;border-radius:4px;white-space:nowrap}
+.pBRK{background:#EDE9FE;color:#6D28D9}.pVerde{background:#D1FAE5;color:#065F46}
+.pConasa{background:#E0F2FE;color:#0369A1}.pCasal{background:#DBEAFE;color:#1E40AF}
+.pSem{background:#F1F5F9;color:#64748B}
+
+/* SCORE BAR */
+.sb{display:flex;align-items:center;gap:5px}
+.sb-bg{width:52px;height:4px;background:var(--bg);border-radius:2px;overflow:hidden;flex-shrink:0}
+.sb-fill{height:100%;border-radius:2px}
+.sv{font-family:'DM Mono',monospace;font-size:11px;font-weight:500;white-space:nowrap}
+
+/* METRIC */
+.mv{font-family:'DM Mono',monospace;font-size:11px;white-space:nowrap}
+.mw{color:var(--red);font-weight:600}.mm2{color:var(--amber);font-weight:600}
+.mg{color:var(--verde)}.mna{color:var(--subtle)}
+
+/* DETAIL PANEL */
+.dp{border-radius:12px;border:1px solid var(--border);background:var(--surface);position:sticky;top:72px}
+.dp-empty{padding:36px 20px;text-align:center;color:var(--muted)}
+.dp-empty-ico{font-size:28px;opacity:.3;margin-bottom:8px}
+.dp-empty p{font-size:12px;line-height:1.6}
+.dp-hd{padding:16px 18px 12px;border-bottom:1px solid var(--border)}
+.dp-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px}
+.dp-name{font-size:16px;font-weight:800;line-height:1.2;margin-bottom:3px}
+.dp-meta{font-size:11px;color:var(--muted)}
+.dp-score{font-family:'DM Mono',monospace;font-size:26px;font-weight:500;line-height:1}
+.dp-score-lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
+.dp-close{background:none;border:none;cursor:pointer;color:var(--subtle);font-size:17px;padding:2px;line-height:1;border-radius:4px;flex-shrink:0}
+.dp-close:hover{color:var(--text)}
+.dp-bd{padding:14px 18px}
+.sec-lbl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.sec{margin-bottom:14px}
+.gauges{display:grid;gap:7px}
+.gr{display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px}
+.glbl{font-size:11px}
+.gtrack{height:5px;background:var(--bg);border-radius:3px;overflow:hidden;margin-top:2px}
+.gfill{height:100%;border-radius:3px;transition:width .4s}
+.gval{font-family:'DM Mono',monospace;font-size:11px;white-space:nowrap;text-align:right;min-width:34px}
+.dp-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.ds{background:var(--bg);border-radius:8px;padding:9px 11px}
+.ds-lbl{font-size:9px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px}
+.ds-val{font-size:15px;font-weight:800}
+.ds-val.w{color:var(--red)}.ds-val.m{color:var(--amber)}
+.dp-prest{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+
+/* MODAIS */
+.overlay{position:fixed;inset:0;background:rgba(0,15,40,.5);z-index:500;display:none;align-items:center;justify-content:center;padding:16px}
+.overlay.on{display:flex}
+.modal{background:var(--surface);border-radius:14px;padding:24px;width:100%;box-shadow:0 16px 48px rgba(0,0,0,.18)}
+.modal.wide{max-width:540px}.modal.narrow{max-width:420px}
+.modal h3{font-size:15px;font-weight:800;margin-bottom:5px}
+.modal p{font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:16px}
+.info-box{background:var(--azul-light);border-radius:8px;padding:11px 13px;font-size:11px;color:var(--azul);line-height:1.7;margin-bottom:14px}
+.info-box strong{font-weight:700}
+.upload-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.up{border:2px dashed var(--border);border-radius:9px;padding:14px 12px;text-align:center;cursor:pointer;transition:.15s;position:relative}
+.up:hover,.up.ok{border-color:var(--azul-mid);background:var(--azul-light)}
+.up input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
+.up-ico{font-size:18px;margin-bottom:4px}
+.up-lbl{font-size:11px;font-weight:600;display:block}
+.up-sub{font-size:10px;color:var(--muted);margin-top:2px}
+.up-ok{font-size:10px;color:var(--verde);font-weight:600;margin-top:2px;display:none}
+.up.ok .up-ok{display:block}
+.up.ok .up-sub{display:none}
+.modal-actions{display:flex;justify-content:flex-end;gap:8px}
+.btn-cancel{background:none;border:1px solid var(--border);border-radius:7px;padding:7px 16px;font-size:12px;font-weight:600;cursor:pointer;color:var(--muted)}
+.btn-calc{background:var(--azul);color:#fff;border:none;border-radius:7px;padding:7px 18px;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px}
+.btn-calc:hover{background:var(--azul-mid)}
+.btn-calc:disabled{opacity:.5;cursor:not-allowed}
+
+/* PESOS */
+.pr{display:grid;grid-template-columns:1fr 100px auto;align-items:center;gap:10px;margin-bottom:10px}
+.pnome{font-size:12px;font-weight:600}
+.pdesc{font-size:10px;color:var(--muted)}
+input[type=range]{-webkit-appearance:none;width:100%;height:4px;border-radius:2px;background:var(--border);outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;background:var(--azul);cursor:pointer;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.pval{font-family:'DM Mono',monospace;font-size:12px;font-weight:600;color:var(--azul);text-align:right;width:32px}
+.ptotal{border-top:1px solid var(--border);padding-top:10px;margin-top:4px;display:flex;justify-content:space-between;font-size:12px;font-weight:700}
+.ptv{font-family:'DM Mono',monospace;font-size:13px;font-weight:800}
+.ptv.ok{color:var(--verde)}.ptv.err{color:var(--red)}
+
+/* TOAST */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#0F1C2E;color:#fff;border-radius:9px;padding:10px 20px;font-size:12px;font-weight:600;z-index:999;opacity:0;transition:opacity .25s;pointer-events:none;white-space:nowrap}
+.toast.on{opacity:1}
+
+/* PROGRESS */
+.prog{position:fixed;top:0;left:0;height:2px;background:linear-gradient(90deg,#60A5FA,#3B82F6);width:0%;z-index:999;transition:width .3s}
+</style>
+</head>
+<body>
+
+<div class="prog" id="prog"></div>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-logo">
+    <div class="topbar-logo-mark">AR</div>
+    ARSAL
+  </div>
+  <div class="topbar-center">
+    <div class="topbar-title">Ranking de Municípios Críticos</div>
+    <div class="topbar-sub">87 municípios regulados · NCs (todos) · Interrupções 2026 · Qualidade da Água 2026 · Pressão (todos)</div>
+  </div>
+  <div class="topbar-right">
+    <span class="tag-ciclo" id="upd-lbl">Base: mar/2026</span>
+    <button class="btn-sm" onclick="openUpd()">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 8a6 6 0 1 1 1.5 4"/><path d="M2 12V8h4"/></svg>
+      Atualizar
+    </button>
+    <button class="btn-sm" onclick="openPesos()">⚖</button>
+  </div>
+</div>
+
+<!-- KPIs -->
+<div class="kpi-strip" id="kpis"></div>
+
+<!-- FILTROS -->
+<div class="filters">
+  <span class="fl">Filtros:</span>
+  <select id="fM" onchange="render()"><option value="">Todas as mesorregiões</option><option>Agreste</option><option>Leste</option><option>Sertão</option></select>
+  <select id="fB" onchange="render()"><option value="">Todos os blocos</option><option>Bloco A</option><option>Bloco B</option><option>Bloco C</option><option>Sem Bloco</option></select>
+  <select id="fP" onchange="render()"><option value="">Todas as prestadoras</option><option>BRK Ambiental</option><option>Verde Ambiental</option><option>Conasa</option><option>Casal</option></select>
+  <select id="fTop" onchange="render()"><option value="0">Todos (87)</option><option value="10">Top 10</option><option value="20">Top 20</option><option value="30">Top 30</option></select>
+  <div class="fsep"></div>
+  <input type="text" id="fS" placeholder="🔍 Buscar município..." oninput="render()">
+  <div class="fsep"></div>
+  <button class="btn-pesos" onclick="openPesos()">⚖ Pesos do score</button>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <div>
+    <div class="card">
+      <div class="card-head">
+        <h2>Ranking de criticidade</h2>
+        <span class="count-pill" id="cnt">87 municípios</span>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th onclick="srt('ranking')" id="h-ranking">#</th>
+              <th onclick="srt('MUN')" id="h-MUN">Município</th>
+              <th onclick="srt('bloco_html')" id="h-bloco_html">Bloco</th>
+              <th onclick="srt('prestadora_distribuicao')" id="h-prestadora_distribuicao">Dist.</th>
+              <th onclick="srt('score_final')" id="h-score_final" class="sd">Score</th>
+              <th onclick="srt('total_nc')" id="h-total_nc">NCs</th>
+              <th onclick="srt('nc_pendentes')" id="h-nc_pendentes">Pend.</th>
+              <th onclick="srt('autos_infracao')" id="h-autos_infracao">Autos</th>
+              <th onclick="srt('total_interrupcoes')" id="h-total_interrupcoes">Interrup.</th>
+              <th onclick="srt('taxa_desconforme')" id="h-taxa_desconforme">Pressão</th>
+              <th onclick="srt('taxa_colif')" id="h-taxa_colif">Colif.</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="dp" id="dp">
+    <div class="dp-empty">
+      <div class="dp-empty-ico">📋</div>
+      <p>Clique em um município para ver o detalhamento completo dos indicadores.</p>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ATUALIZAR -->
+<div class="overlay" id="upd-modal">
+<div class="modal wide">
+  <h3>Atualizar dados</h3>
+  <p>Importe os CSVs exportados dos painéis. O ranking é recalculado no navegador — nenhum dado é enviado para servidor.</p>
+  <div class="info-box">
+    <strong>Filtros automáticos:</strong><br>
+    · NCs: <strong>todos os registros</strong> do painel de fiscalização<br>
+    · Interrupções: <strong>Ano 2026</strong> (campo "Data do Envio")<br>
+    · Qualidade da Água: <strong>Ano 2026</strong> (campo "Data da Coleta")<br>
+    · Pressão: <strong>todos os registros</strong> disponíveis
+  </div>
+  <div class="upload-grid">
+    <div class="up" id="up-nc"><input type="file" accept=".csv" onchange="gotFile('nc',this)">
+      <div class="up-ico">📋</div><span class="up-lbl">Lista de NCs</span>
+      <div class="up-sub">Painel de Fiscalização · .csv</div><div class="up-ok"></div>
+    </div>
+    <div class="up" id="up-inter"><input type="file" accept=".csv" onchange="gotFile('inter',this)">
+      <div class="up-ico">⚡</div><span class="up-lbl">Interrupções de Serviços</span>
+      <div class="up-sub">Base de Dados · .csv</div><div class="up-ok"></div>
+    </div>
+    <div class="up" id="up-mp"><input type="file" accept=".csv" onchange="gotFile('mp',this)">
+      <div class="up-ico">💧</div><span class="up-lbl">Medições de Pressão</span>
+      <div class="up-sub">Google Maps · .csv</div><div class="up-ok"></div>
+    </div>
+    <div class="up" id="up-qa"><input type="file" accept=".csv" onchange="gotFile('qa',this)">
+      <div class="up-ico">🔬</div><span class="up-lbl">Qualidade da Água</span>
+      <div class="up-sub">Vigilância · .csv</div><div class="up-ok"></div>
+    </div>
+  </div>
+  <div class="modal-actions">
+    <button class="btn-cancel" onclick="closeUpd()">Cancelar</button>
+    <button class="btn-calc" id="btn-calc" onclick="recalc()">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 8a6 6 0 1 1 1.5 4"/><path d="M2 12V8h4"/></svg>
+      Recalcular ranking
+    </button>
+  </div>
+</div>
+</div>
+
+<!-- MODAL PESOS -->
+<div class="overlay" id="pesos-modal">
+<div class="modal narrow">
+  <h3>Pesos do score</h3>
+  <p>Ajuste a relevância de cada indicador. Soma deve ser 100%.</p>
+  <div id="pesos-form"></div>
+  <div class="modal-actions" style="margin-top:12px">
+    <button class="btn-cancel" onclick="closePesos()">Cancelar</button>
+    <button class="btn-calc" onclick="applyPesos()">Aplicar</button>
+  </div>
+</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── DADOS (gerados a partir dos 4 CSVs: NC, Interrupções 2026, Pressão MP.xlsx, Qualidade Água 2026) ──
+const BASE = [{"ranking":1,"MUN":"Maceió","MESOREGIAO":"Leste","BLOCO":"Bloco A","POP_TOTAL":957916,"score_final":0.7733,"total_nc":721.0,"nc_pendentes":431.0,"nc_expiradas":0.0,"autos_infracao":34.0,"taxa_sanamento":0.258,"total_interrupcoes":805.0,"emergenciais":726.0,"total_medicoes":24.0,"desconformes":8.0,"taxa_desconforme":0.333,"total_amostras":144.0,"colif_presente":17.0,"taxa_colif":0.118,"ecoli_presente":6.0,"taxa_ecoli":0.042,"turbidez_media":1.29,"cloro_medio":0.353,"prestadora_producao":"Casal","prestadora_distribuicao":"BRK Ambiental","prestadora_esgoto":"BRK Ambiental","bloco_html":"Bloco A"},{"ranking":2,"MUN":"Ouro Branco","MESOREGIAO":"Sertão","BLOCO":"Bloco B","POP_TOTAL":11446,"score_final":0.263,"total_nc":0.0,"nc_pendentes":0.0,"nc_expiradas":0.0,"autos_infracao":0.0,"taxa_sanamento":0.0,"total_interrupcoes":0.0,"emergenciais":0.0,"total_medicoes":10.0,"desconformes":9.0,"taxa_desconforme":0.9,"total_amostras":10.0,"colif_presente":5.0,"taxa_colif":0.5,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":0.904,"cloro_medio":0.2,"prestadora_producao":"Casal","prestadora_distribuicao":"Conasa","prestadora_esgoto":"Conasa","bloco_html":"Bloco B"},{"ranking":3,"MUN":"Maragogi","MESOREGIAO":"Leste","BLOCO":"Bloco C","POP_TOTAL":32174,"score_final":0.2225,"total_nc":289.0,"nc_pendentes":137.0,"nc_expiradas":0.0,"autos_infracao":10.0,"taxa_sanamento":0.484,"total_interrupcoes":63.0,"emergenciais":63.0,"total_medicoes":6.0,"desconformes":0.0,"taxa_desconforme":0.0,"total_amostras":35.0,"colif_presente":11.0,"taxa_colif":0.314,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":0.52,"cloro_medio":0.261,"prestadora_producao":"Casal","prestadora_distribuicao":"Verde Ambiental","prestadora_esgoto":"Verde Ambiental","bloco_html":"Bloco C"},{"ranking":4,"MUN":"Canapi","MESOREGIAO":"Sertão","BLOCO":"Sem Bloco","POP_TOTAL":15559,"score_final":0.2038,"total_nc":8.0,"nc_pendentes":0.0,"nc_expiradas":0.0,"autos_infracao":5.0,"taxa_sanamento":0.375,"total_interrupcoes":0.0,"emergenciais":0.0,"total_medicoes":0.0,"desconformes":0.0,"taxa_desconforme":0.0,"total_amostras":10.0,"colif_presente":8.0,"taxa_colif":0.8,"ecoli_presente":2.0,"taxa_ecoli":0.2,"turbidez_media":1.473,"cloro_medio":0.587,"prestadora_producao":"Casal","prestadora_distribuicao":"Casal","prestadora_esgoto":"Sem informação","bloco_html":"Sem Bloco"},{"ranking":5,"MUN":"Santa Luzia do Norte","MESOREGIAO":"Leste","BLOCO":"Bloco A","POP_TOTAL":6919,"score_final":0.2011,"total_nc":21.0,"nc_pendentes":5.0,"nc_expiradas":0.0,"autos_infracao":0.0,"taxa_sanamento":0.619,"total_interrupcoes":5.0,"emergenciais":5.0,"total_medicoes":8.0,"desconformes":5.0,"taxa_desconforme":0.625,"total_amostras":15.0,"colif_presente":9.0,"taxa_colif":0.6,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":2.393,"cloro_medio":0.642,"prestadora_producao":"Casal","prestadora_distribuicao":"BRK Ambiental","prestadora_esgoto":"BRK Ambiental","bloco_html":"Bloco A"},{"ranking":6,"MUN":"Cacimbinhas","MESOREGIAO":"Agreste","BLOCO":"Bloco B","POP_TOTAL":10482,"score_final":0.2,"total_nc":0.0,"nc_pendentes":0.0,"nc_expiradas":0.0,"autos_infracao":0.0,"taxa_sanamento":0.0,"total_interrupcoes":0.0,"emergenciais":0.0,"total_medicoes":0.0,"desconformes":0.0,"taxa_desconforme":0.0,"total_amostras":10.0,"colif_presente":4.0,"taxa_colif":0.4,"ecoli_presente":4.0,"taxa_ecoli":0.4,"turbidez_media":24.795,"cloro_medio":0.03,"prestadora_producao":"Casal","prestadora_distribuicao":"Conasa","prestadora_esgoto":"Conasa","bloco_html":"Bloco B"},{"ranking":7,"MUN":"Coité do Nóia","MESOREGIAO":"Agreste","BLOCO":"Sem Bloco","POP_TOTAL":10810,"score_final":0.2,"total_nc":0.0,"nc_pendentes":0.0,"nc_expiradas":0.0,"autos_infracao":0.0,"taxa_sanamento":0.0,"total_interrupcoes":0.0,"emergenciais":0.0,"total_medicoes":3.0,"desconformes":3.0,"taxa_desconforme":1.0,"total_amostras":10.0,"colif_presente":0.0,"taxa_colif":0.0,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":0.61,"cloro_medio":1.08,"prestadora_producao":"Casal","prestadora_distribuicao":"Casal","prestadora_esgoto":"Sem informação","bloco_html":"Sem Bloco"},{"ranking":8,"MUN":"Dois Riachos","MESOREGIAO":"Sertão","BLOCO":"Bloco B","POP_TOTAL":9805,"score_final":0.1893,"total_nc":17.0,"nc_pendentes":7.0,"nc_expiradas":0.0,"autos_infracao":0.0,"taxa_sanamento":0.588,"total_interrupcoes":7.0,"emergenciais":7.0,"total_medicoes":10.0,"desconformes":8.0,"taxa_desconforme":0.8,"total_amostras":20.0,"colif_presente":6.0,"taxa_colif":0.3,"ecoli_presente":1.0,"taxa_ecoli":0.05,"turbidez_media":0.322,"cloro_medio":1.193,"prestadora_producao":"Casal","prestadora_distribuicao":"Conasa","prestadora_esgoto":"Conasa","bloco_html":"Bloco B"},{"ranking":9,"MUN":"Pilar","MESOREGIAO":"Leste","BLOCO":"Bloco A","POP_TOTAL":35370,"score_final":0.1868,"total_nc":162.0,"nc_pendentes":51.0,"nc_expiradas":0.0,"autos_infracao":46.0,"taxa_sanamento":0.401,"total_interrupcoes":56.0,"emergenciais":53.0,"total_medicoes":8.0,"desconformes":3.0,"taxa_desconforme":0.375,"total_amostras":0.0,"colif_presente":0.0,"taxa_colif":0.0,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":0.0,"cloro_medio":0.0,"prestadora_producao":"Casal","prestadora_distribuicao":"BRK Ambiental","prestadora_esgoto":"BRK Ambiental","bloco_html":"Bloco A"},{"ranking":10,"MUN":"Barra de Santo Antônio","MESOREGIAO":"Leste","BLOCO":"Bloco A","POP_TOTAL":16365,"score_final":0.169,"total_nc":118.0,"nc_pendentes":6.0,"nc_expiradas":91.0,"autos_infracao":0.0,"taxa_sanamento":0.0,"total_interrupcoes":43.0,"emergenciais":43.0,"total_medicoes":0.0,"desconformes":0.0,"taxa_desconforme":0.0,"total_amostras":15.0,"colif_presente":0.0,"taxa_colif":0.0,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":0.771,"cloro_medio":1.033,"prestadora_producao":"BRK Ambiental","prestadora_distribuicao":"BRK Ambiental","prestadora_esgoto":"BRK Ambiental","bloco_html":"Bloco A"},{"ranking":11,"MUN":"Porto de Pedras","MESOREGIAO":"Leste","BLOCO":"Bloco C","POP_TOTAL":9295,"score_final":0.1649,"total_nc":54.0,"nc_pendentes":1.0,"nc_expiradas":0.0,"autos_infracao":23.0,"taxa_sanamento":0.556,"total_interrupcoes":42.0,"emergenciais":38.0,"total_medicoes":10.0,"desconformes":4.0,"taxa_desconforme":0.4,"total_amostras":63.0,"colif_presente":17.0,"taxa_colif":0.27,"ecoli_presente":3.0,"taxa_ecoli":0.048,"turbidez_media":1.498,"cloro_medio":1.25,"prestadora_producao":"Casal","prestadora_distribuicao":"Verde Ambiental","prestadora_esgoto":"Verde Ambiental","bloco_html":"Bloco C"},{"ranking":12,"MUN":"Murici","MESOREGIAO":"Leste","BLOCO":"Bloco A","POP_TOTAL":25187,"score_final":0.1636,"total_nc":21.0,"nc_pendentes":3.0,"nc_expiradas":0.0,"autos_infracao":3.0,"taxa_sanamento":0.286,"total_interrupcoes":32.0,"emergenciais":32.0,"total_medicoes":8.0,"desconformes":6.0,"taxa_desconforme":0.75,"total_amostras":0.0,"colif_presente":0.0,"taxa_colif":0.0,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":0.0,"cloro_medio":0.0,"prestadora_producao":"Casal","prestadora_distribuicao":"BRK Ambiental","prestadora_esgoto":"BRK Ambiental","bloco_html":"Bloco A"},{"ranking":13,"MUN":"Marechal Deodoro","MESOREGIAO":"Leste","BLOCO":"Bloco A","POP_TOTAL":60370,"score_final":0.1595,"total_nc":105.0,"nc_pendentes":22.0,"nc_expiradas":0.0,"autos_infracao":0.0,"taxa_sanamento":0.733,"total_interrupcoes":197.0,"emergenciais":186.0,"total_medicoes":0.0,"desconformes":0.0,"taxa_desconforme":0.0,"total_amostras":28.0,"colif_presente":7.0,"taxa_colif":0.25,"ecoli_presente":2.0,"taxa_ecoli":0.071,"turbidez_media":1.376,"cloro_medio":1.123,"prestadora_producao":"BRK Ambiental","prestadora_distribuicao":"BRK Ambiental","prestadora_esgoto":"BRK Ambiental","bloco_html":"Bloco A"},{"ranking":14,"MUN":"Rio Largo","MESOREGIAO":"Leste","BLOCO":"Bloco A","POP_TOTAL":93927,"score_final":0.1568,"total_nc":111.0,"nc_pendentes":11.0,"nc_expiradas":17.0,"autos_infracao":11.0,"taxa_sanamento":0.36,"total_interrupcoes":108.0,"emergenciais":101.0,"total_medicoes":10.0,"desconformes":3.0,"taxa_desconforme":0.3,"total_amostras":0.0,"colif_presente":0.0,"taxa_colif":0.0,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":0.0,"cloro_medio":0.0,"prestadora_producao":"Casal","prestadora_distribuicao":"BRK Ambiental","prestadora_esgoto":"BRK Ambiental","bloco_html":"Bloco A"},{"ranking":15,"MUN":"Passo de Camaragibe","MESOREGIAO":"Leste","BLOCO":"Bloco C","POP_TOTAL":13804,"score_final":0.1542,"total_nc":133.0,"nc_pendentes":101.0,"nc_expiradas":0.0,"autos_infracao":0.0,"taxa_sanamento":0.241,"total_interrupcoes":20.0,"emergenciais":20.0,"total_medicoes":10.0,"desconformes":0.0,"taxa_desconforme":0.0,"total_amostras":15.0,"colif_presente":1.0,"taxa_colif":0.067,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":2.389,"cloro_medio":0.0,"prestadora_producao":"Casal","prestadora_distribuicao":"Verde Ambiental","prestadora_esgoto":"Verde Ambiental","bloco_html":"Bloco C"},{"ranking":16,"MUN":"Capela","MESOREGIAO":"Leste","BLOCO":"Bloco C","POP_TOTAL":15032,"score_final":0.154,"total_nc":18.0,"nc_pendentes":4.0,"nc_expiradas":0.0,"autos_infracao":6.0,"taxa_sanamento":0.167,"total_interrupcoes":21.0,"emergenciais":19.0,"total_medicoes":10.0,"desconformes":0.0,"taxa_desconforme":0.0,"total_amostras":25.0,"colif_presente":12.0,"taxa_colif":0.48,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":2.298,"cloro_medio":0.138,"prestadora_producao":"Casal","prestadora_distribuicao":"Verde Ambiental","prestadora_esgoto":"Verde Ambiental","bloco_html":"Bloco C"},{"ranking":17,"MUN":"Maribondo","MESOREGIAO":"Agreste","BLOCO":"Bloco C","POP_TOTAL":13679,"score_final":0.1533,"total_nc":14.0,"nc_pendentes":4.0,"nc_expiradas":0.0,"autos_infracao":3.0,"taxa_sanamento":0.5,"total_interrupcoes":8.0,"emergenciais":7.0,"total_medicoes":8.0,"desconformes":5.0,"taxa_desconforme":0.625,"total_amostras":25.0,"colif_presente":5.0,"taxa_colif":0.2,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":8.004,"cloro_medio":0.642,"prestadora_producao":"Casal","prestadora_distribuicao":"Verde Ambiental","prestadora_esgoto":"Verde Ambiental","bloco_html":"Bloco C"},{"ranking":18,"MUN":"Barra de São Miguel","MESOREGIAO":"Leste","BLOCO":"Bloco A","POP_TOTAL":7944,"score_final":0.149,"total_nc":41.0,"nc_pendentes":21.0,"nc_expiradas":0.0,"autos_infracao":0.0,"taxa_sanamento":0.0,"total_interrupcoes":22.0,"emergenciais":22.0,"total_medicoes":0.0,"desconformes":0.0,"taxa_desconforme":0.0,"total_amostras":10.0,"colif_presente":2.0,"taxa_colif":0.2,"ecoli_presente":1.0,"taxa_ecoli":0.1,"turbidez_media":1.88,"cloro_medio":0.0,"prestadora_producao":"Casal","prestadora_distribuicao":"BRK Ambiental","prestadora_esgoto":"BRK Ambiental","bloco_html":"Bloco A"},{"ranking":19,"MUN":"Igaci","MESOREGIAO":"Agreste","BLOCO":"Bloco B","POP_TOTAL":23995,"score_final":0.1452,"total_nc":0.0,"nc_pendentes":0.0,"nc_expiradas":0.0,"autos_infracao":0.0,"taxa_sanamento":0.0,"total_interrupcoes":21.0,"emergenciais":20.0,"total_medicoes":0.0,"desconformes":0.0,"taxa_desconforme":0.0,"total_amostras":34.0,"colif_presente":7.0,"taxa_colif":0.206,"ecoli_presente":6.0,"taxa_ecoli":0.176,"turbidez_media":14.406,"cloro_medio":0.458,"prestadora_producao":"Casal","prestadora_distribuicao":"Conasa","prestadora_esgoto":"Conasa","bloco_html":"Bloco B"},{"ranking":20,"MUN":"Branquinha","MESOREGIAO":"Leste","BLOCO":"Bloco C","POP_TOTAL":9603,"score_final":0.1375,"total_nc":39.0,"nc_pendentes":0.0,"nc_expiradas":0.0,"autos_infracao":5.0,"taxa_sanamento":0.436,"total_interrupcoes":3.0,"emergenciais":3.0,"total_medicoes":11.0,"desconformes":0.0,"taxa_desconforme":0.0,"total_amostras":24.0,"colif_presente":11.0,"taxa_colif":0.458,"ecoli_presente":3.0,"taxa_ecoli":0.125,"turbidez_media":1.66,"cloro_medio":0.0,"prestadora_producao":"Verde Ambiental","prestadora_distribuicao":"Verde Ambiental","prestadora_esgoto":"Verde Ambiental","bloco_html":"Bloco C"},{"ranking":21,"MUN":"Ibateguara","MESOREGIAO":"Leste","BLOCO":"Bloco C","POP_TOTAL":13731,"score_final":0.1286,"total_nc":16.0,"nc_pendentes":0.0,"nc_expiradas":0.0,"autos_infracao":4.0,"taxa_sanamento":0.625,"total_interrupcoes":35.0,"emergenciais":33.0,"total_medicoes":6.0,"desconformes":0.0,"taxa_desconforme":0.0,"total_amostras":20.0,"colif_presente":6.0,"taxa_colif":0.3,"ecoli_presente":5.0,"taxa_ecoli":0.25,"turbidez_media":4.292,"cloro_medio":0.472,"prestadora_producao":"Casal","prestadora_distribuicao":"Verde Ambiental","prestadora_esgoto":"Verde Ambiental","bloco_html":"Bloco C"},{"ranking":22,"MUN":"Satuba","MESOREGIAO":"Leste","BLOCO":"Bloco A","POP_TOTAL":24278,"score_final":0.1149,"total_nc":31.0,"nc_pendentes":14.0,"nc_expiradas":0.0,"autos_infracao":0.0,"taxa_sanamento":0.548,"total_interrupcoes":22.0,"emergenciais":22.0,"total_medicoes":8.0,"desconformes":4.0,"taxa_desconforme":0.5,"total_amostras":0.0,"colif_presente":0.0,"taxa_colif":0.0,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":0.0,"cloro_medio":0.0,"prestadora_producao":"Casal","prestadora_distribuicao":"BRK Ambiental","prestadora_esgoto":"BRK Ambiental","bloco_html":"Bloco A"},{"ranking":23,"MUN":"Feira Grande","MESOREGIAO":"Agreste","BLOCO":"Bloco B","POP_TOTAL":22712,"score_final":0.1113,"total_nc":45.0,"nc_pendentes":0.0,"nc_expiradas":0.0,"autos_infracao":44.0,"taxa_sanamento":0.022,"total_interrupcoes":0.0,"emergenciais":0.0,"total_medicoes":0.0,"desconformes":0.0,"taxa_desconforme":0.0,"total_amostras":0.0,"colif_presente":0.0,"taxa_colif":0.0,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":0.0,"cloro_medio":0.0,"prestadora_producao":"Casal","prestadora_distribuicao":"Conasa","prestadora_esgoto":"Conasa","bloco_html":"Bloco B"},{"ranking":24,"MUN":"Piaçabuçu","MESOREGIAO":"Leste","BLOCO":"Bloco B","POP_TOTAL":15908,"score_final":0.1054,"total_nc":8.0,"nc_pendentes":0.0,"nc_expiradas":0.0,"autos_infracao":5.0,"taxa_sanamento":0.25,"total_interrupcoes":15.0,"emergenciais":14.0,"total_medicoes":10.0,"desconformes":3.0,"taxa_desconforme":0.3,"total_amostras":0.0,"colif_presente":0.0,"taxa_colif":0.0,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":0.0,"cloro_medio":0.0,"prestadora_producao":"Casal","prestadora_distribuicao":"Conasa","prestadora_esgoto":"Conasa","bloco_html":"Bloco B"},{"ranking":25,"MUN":"Arapiraca","MESOREGIAO":"Agreste","BLOCO":"Sem Bloco","POP_TOTAL":234696,"score_final":0.0981,"total_nc":45.0,"nc_pendentes":0.0,"nc_expiradas":0.0,"autos_infracao":2.0,"taxa_sanamento":0.378,"total_interrupcoes":21.0,"emergenciais":21.0,"total_medicoes":0.0,"desconformes":0.0,"taxa_desconforme":0.0,"total_amostras":50.0,"colif_presente":10.0,"taxa_colif":0.2,"ecoli_presente":3.0,"taxa_ecoli":0.06,"turbidez_media":0.856,"cloro_medio":1.278,"prestadora_producao":"Casal","prestadora_distribuicao":"Casal","prestadora_esgoto":"Sem informação","bloco_html":"Sem Bloco"},{"ranking":26,"MUN":"Paulo Jacinto","MESOREGIAO":"Agreste","BLOCO":"Bloco C","POP_TOTAL":6576,"score_final":0.0979,"total_nc":25.0,"nc_pendentes":16.0,"nc_expiradas":0.0,"autos_infracao":0.0,"taxa_sanamento":0.32,"total_interrupcoes":4.0,"emergenciais":2.0,"total_medicoes":0.0,"desconformes":0.0,"taxa_desconforme":0.0,"total_amostras":30.0,"colif_presente":6.0,"taxa_colif":0.2,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":1.279,"cloro_medio":1.02,"prestadora_producao":"Casal","prestadora_distribuicao":"Verde Ambiental","prestadora_esgoto":"Verde Ambiental","bloco_html":"Bloco C"},{"ranking":27,"MUN":"Girau do Ponciano","MESOREGIAO":"Agreste","BLOCO":"Sem Bloco","POP_TOTAL":36102,"score_final":0.0963,"total_nc":20.0,"nc_pendentes":0.0,"nc_expiradas":0.0,"autos_infracao":10.0,"taxa_sanamento":0.5,"total_interrupcoes":2.0,"emergenciais":2.0,"total_medicoes":10.0,"desconformes":4.0,"taxa_desconforme":0.4,"total_amostras":10.0,"colif_presente":0.0,"taxa_colif":0.0,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":0.0,"cloro_medio":1.85,"prestadora_producao":"Casal","prestadora_distribuicao":"Casal","prestadora_esgoto":"Sem informação","bloco_html":"Sem Bloco"},{"ranking":28,"MUN":"Tanque d'Arca","MESOREGIAO":"Agreste","BLOCO":"Bloco C","POP_TOTAL":5796,"score_final":0.0961,"total_nc":54.0,"nc_pendentes":3.0,"nc_expiradas":0.0,"autos_infracao":38.0,"taxa_sanamento":0.241,"total_interrupcoes":12.0,"emergenciais":5.0,"total_medicoes":0.0,"desconformes":0.0,"taxa_desconforme":0.0,"total_amostras":1.0,"colif_presente":0.0,"taxa_colif":0.0,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":0.82,"cloro_medio":0.4,"prestadora_producao":"Verde Ambiental","prestadora_distribuicao":"Verde Ambiental","prestadora_esgoto":"Verde Ambiental","bloco_html":"Bloco C"},{"ranking":29,"MUN":"Batalha","MESOREGIAO":"Sertão","BLOCO":"Bloco B","POP_TOTAL":16448,"score_final":0.0961,"total_nc":15.0,"nc_pendentes":11.0,"nc_expiradas":0.0,"autos_infracao":3.0,"taxa_sanamento":0.0,"total_interrupcoes":15.0,"emergenciais":15.0,"total_medicoes":6.0,"desconformes":0.0,"taxa_desconforme":0.0,"total_amostras":7.0,"colif_presente":0.0,"taxa_colif":0.0,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":0.483,"cloro_medio":0.0,"prestadora_producao":"Casal","prestadora_distribuicao":"Conasa","prestadora_esgoto":"Conasa","bloco_html":"Bloco B"},{"ranking":30,"MUN":"Monteirópolis","MESOREGIAO":"Sertão","BLOCO":"Bloco B","POP_TOTAL":7184,"score_final":0.095,"total_nc":0.0,"nc_pendentes":0.0,"nc_expiradas":0.0,"autos_infracao":0.0,"taxa_sanamento":0.0,"total_interrupcoes":8.0,"emergenciais":8.0,"total_medicoes":0.0,"desconformes":0.0,"taxa_desconforme":0.0,"total_amostras":25.0,"colif_presente":2.0,"taxa_colif":0.08,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":6.068,"cloro_medio":2.02,"prestadora_producao":"Casal","prestadora_distribuicao":"Conasa","prestadora_esgoto":"Conasa","bloco_html":"Bloco B"},{"ranking":31,"MUN":"Campestre","MESOREGIAO":"Leste","BLOCO":"Bloco C","POP_TOTAL":6665,"score_final":0.0947,"total_nc":18.0,"nc_pendentes":13.0,"nc_expiradas":0.0,"autos_infracao":4.0,"taxa_sanamento":0.056,"total_interrupcoes":17.0,"emergenciais":15.0,"total_medicoes":0.0,"desconformes":0.0,"taxa_desconforme":0.0,"total_amostras":0.0,"colif_presente":0.0,"taxa_colif":0.0,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":0.0,"cloro_medio":0.0,"prestadora_producao":"Casal","prestadora_distribuicao":"Verde Ambiental","prestadora_esgoto":"Verde Ambiental","bloco_html":"Bloco C"},{"ranking":32,"MUN":"São Luís do Quitunde","MESOREGIAO":"Leste","BLOCO":"Bloco C","POP_TOTAL":30873,"score_final":0.0918,"total_nc":96.0,"nc_pendentes":1.0,"nc_expiradas":14.0,"autos_infracao":41.0,"taxa_sanamento":0.417,"total_interrupcoes":8.0,"emergenciais":8.0,"total_medicoes":0.0,"desconformes":0.0,"taxa_desconforme":0.0,"total_amostras":0.0,"colif_presente":0.0,"taxa_colif":0.0,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":0.0,"cloro_medio":0.0,"prestadora_producao":"Verde Ambiental","prestadora_distribuicao":"Verde Ambiental","prestadora_esgoto":"Verde Ambiental","bloco_html":"Bloco C"},{"ranking":33,"MUN":"Coqueiro Seco","MESOREGIAO":"Leste","BLOCO":"Bloco A","POP_TOTAL":5581,"score_final":0.0885,"total_nc":19.0,"nc_pendentes":0.0,"nc_expiradas":0.0,"autos_infracao":5.0,"taxa_sanamento":0.737,"total_interrupcoes":10.0,"emergenciais":8.0,"total_medicoes":10.0,"desconformes":3.0,"taxa_desconforme":0.3,"total_amostras":25.0,"colif_presente":4.0,"taxa_colif":0.16,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":1.553,"cloro_medio":0.0,"prestadora_producao":"Casal","prestadora_distribuicao":"BRK Ambiental","prestadora_esgoto":"BRK Ambiental","bloco_html":"Bloco A"},{"ranking":34,"MUN":"Inhapi","MESOREGIAO":"Sertão","BLOCO":"Bloco B","POP_TOTAL":15167,"score_final":0.0878,"total_nc":0.0,"nc_pendentes":0.0,"nc_expiradas":0.0,"autos_infracao":0.0,"taxa_sanamento":0.0,"total_interrupcoes":11.0,"emergenciais":11.0,"total_medicoes":10.0,"desconformes":0.0,"taxa_desconforme":0.0,"total_amostras":40.0,"colif_presente":1.0,"taxa_colif":0.025,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":0.972,"cloro_medio":1.05,"prestadora_producao":"Casal","prestadora_distribuicao":"Conasa","prestadora_esgoto":"Conasa","bloco_html":"Bloco B"},{"ranking":35,"MUN":"Penedo","MESOREGIAO":"Leste","BLOCO":"Bloco B","POP_TOTAL":58650,"score_final":0.0867,"total_nc":124.0,"nc_pendentes":0.0,"nc_expiradas":0.0,"autos_infracao":0.0,"taxa_sanamento":0.0,"total_interrupcoes":18.0,"emergenciais":8.0,"total_medicoes":13.0,"desconformes":0.0,"taxa_desconforme":0.0,"total_amostras":15.0,"colif_presente":0.0,"taxa_colif":0.0,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":0.984,"cloro_medio":1.213,"prestadora_producao":"Conasa","prestadora_distribuicao":"Conasa","prestadora_esgoto":"Conasa","bloco_html":"Bloco B"},{"ranking":36,"MUN":"Feliz Deserto","MESOREGIAO":"Leste","BLOCO":"Bloco C","POP_TOTAL":3963,"score_final":0.0841,"total_nc":0.0,"nc_pendentes":0.0,"nc_expiradas":0.0,"autos_infracao":0.0,"taxa_sanamento":0.0,"total_interrupcoes":11.0,"emergenciais":3.0,"total_medicoes":0.0,"desconformes":0.0,"taxa_desconforme":0.0,"total_amostras":0.0,"colif_presente":0.0,"taxa_colif":0.0,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":0.0,"cloro_medio":0.0,"prestadora_producao":"Casal","prestadora_distribuicao":"Verde Ambiental","prestadora_esgoto":"Verde Ambiental","bloco_html":"Bloco C"},{"ranking":37,"MUN":"Pindoba","MESOREGIAO":"Leste","BLOCO":"Bloco C","POP_TOTAL":2731,"score_final":0.0836,"total_nc":31.0,"nc_pendentes":0.0,"nc_expiradas":0.0,"autos_infracao":20.0,"taxa_sanamento":0.161,"total_interrupcoes":4.0,"emergenciais":4.0,"total_medicoes":0.0,"desconformes":0.0,"taxa_desconforme":0.0,"total_amostras":0.0,"colif_presente":0.0,"taxa_colif":0.0,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":0.0,"cloro_medio":0.0,"prestadora_producao":"Casal","prestadora_distribuicao":"Verde Ambiental","prestadora_esgoto":"Verde Ambiental","bloco_html":"Bloco C"},{"ranking":38,"MUN":"Major Isidoro","MESOREGIAO":"Sertão","BLOCO":"Bloco B","POP_TOTAL":17700,"score_final":0.0819,"total_nc":0.0,"nc_pendentes":0.0,"nc_expiradas":0.0,"autos_infracao":0.0,"taxa_sanamento":0.0,"total_interrupcoes":5.0,"emergenciais":5.0,"total_medicoes":0.0,"desconformes":0.0,"taxa_desconforme":0.0,"total_amostras":0.0,"colif_presente":0.0,"taxa_colif":0.0,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":0.0,"cloro_medio":0.0,"prestadora_producao":"Casal","prestadora_distribuicao":"Conasa","prestadora_esgoto":"Conasa","bloco_html":"Bloco B"},{"ranking":39,"MUN":"Campo Grande","MESOREGIAO":"Agreste","BLOCO":"Bloco B","POP_TOTAL":8143,"score_final":0.0807,"total_nc":0.0,"nc_pendentes":0.0,"nc_expiradas":0.0,"autos_infracao":0.0,"taxa_sanamento":0.0,"total_interrupcoes":2.0,"emergenciais":2.0,"total_medicoes":0.0,"desconformes":0.0,"taxa_desconforme":0.0,"total_amostras":0.0,"colif_presente":0.0,"taxa_colif":0.0,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":0.0,"cloro_medio":0.0,"prestadora_producao":"Casal","prestadora_distribuicao":"Conasa","prestadora_esgoto":"Conasa","bloco_html":"Bloco B"},{"ranking":40,"MUN":"Palestina","MESOREGIAO":"Sertão","BLOCO":"Bloco B","POP_TOTAL":4325,"score_final":0.08,"total_nc":0.0,"nc_pendentes":0.0,"nc_expiradas":0.0,"autos_infracao":0.0,"taxa_sanamento":0.0,"total_interrupcoes":0.0,"emergenciais":0.0,"total_medicoes":0.0,"desconformes":0.0,"taxa_desconforme":0.0,"total_amostras":0.0,"colif_presente":0.0,"taxa_colif":0.0,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":0.0,"cloro_medio":0.0,"prestadora_producao":"Casal","prestadora_distribuicao":"Conasa","prestadora_esgoto":"Conasa","bloco_html":"Bloco B"},{"ranking":41,"MUN":"Messias","MESOREGIAO":"Leste","BLOCO":"Bloco A","POP_TOTAL":15405,"score_final":0.08,"total_nc":25.0,"nc_pendentes":5.0,"nc_expiradas":0.0,"autos_infracao":0.0,"taxa_sanamento":0.44,"total_interrupcoes":20.0,"emergenciais":19.0,"total_medicoes":10.0,"desconformes":2.0,"taxa_desconforme":0.2,"total_amostras":12.0,"colif_presente":0.0,"taxa_colif":0.0,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":0.0,"cloro_medio":0.575,"prestadora_producao":"Casal","prestadora_distribuicao":"BRK Ambiental","prestadora_esgoto":"BRK Ambiental","bloco_html":"Bloco A"},{"ranking":42,"MUN":"Matriz de Camaragibe","MESOREGIAO":"Leste","BLOCO":"Bloco C","POP_TOTAL":23857,"score_final":0.0776,"total_nc":66.0,"nc_pendentes":0.0,"nc_expiradas":0.0,"autos_infracao":19.0,"taxa_sanamento":0.288,"total_interrupcoes":17.0,"emergenciais":14.0,"total_medicoes":0.0,"desconformes":0.0,"taxa_desconforme":0.0,"total_amostras":35.0,"colif_presente":0.0,"taxa_colif":0.0,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":0.0,"cloro_medio":0.771,"prestadora_producao":"Casal","prestadora_distribuicao":"Verde Ambiental","prestadora_esgoto":"Verde Ambiental","bloco_html":"Bloco C"},{"ranking":43,"MUN":"Igreja Nova","MESOREGIAO":"Leste","BLOCO":"Bloco B","POP_TOTAL":21372,"score_final":0.0758,"total_nc":48.0,"nc_pendentes":1.0,"nc_expiradas":0.0,"autos_infracao":0.0,"taxa_sanamento":0.979,"total_interrupcoes":18.0,"emergenciais":14.0,"total_medicoes":0.0,"desconformes":0.0,"taxa_desconforme":0.0,"total_amostras":18.0,"colif_presente":6.0,"taxa_colif":0.333,"ecoli_presente":2.0,"taxa_ecoli":0.111,"turbidez_media":1.411,"cloro_medio":0.161,"prestadora_producao":"Casal","prestadora_distribuicao":"Conasa","prestadora_esgoto":"Conasa","bloco_html":"Bloco B"},{"ranking":44,"MUN":"Pão de Açúcar","MESOREGIAO":"Sertão","BLOCO":"Bloco B","POP_TOTAL":23823,"score_final":0.0755,"total_nc":42.0,"nc_pendentes":0.0,"nc_expiradas":0.0,"autos_infracao":0.0,"taxa_sanamento":0.452,"total_interrupcoes":46.0,"emergenciais":41.0,"total_medicoes":11.0,"desconformes":0.0,"taxa_desconforme":0.0,"total_amostras":31.0,"colif_presente":3.0,"taxa_colif":0.097,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":1.14,"cloro_medio":1.0,"prestadora_producao":"Casal","prestadora_distribuicao":"Conasa","prestadora_esgoto":"Conasa","bloco_html":"Bloco B"},{"ranking":45,"MUN":"São Miguel dos Milagres","MESOREGIAO":"Leste","BLOCO":"Bloco C","POP_TOTAL":8482,"score_final":0.0744,"total_nc":41.0,"nc_pendentes":0.0,"nc_expiradas":0.0,"autos_infracao":16.0,"taxa_sanamento":0.61,"total_interrupcoes":3.0,"emergenciais":3.0,"total_medicoes":4.0,"desconformes":1.0,"taxa_desconforme":0.25,"total_amostras":25.0,"colif_presente":0.0,"taxa_colif":0.0,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":0.0,"cloro_medio":0.98,"prestadora_producao":"Verde Ambiental","prestadora_distribuicao":"Verde Ambiental","prestadora_esgoto":"Verde Ambiental","bloco_html":"Bloco C"},{"ranking":46,"MUN":"Joaquim Gomes","MESOREGIAO":"Leste","BLOCO":"Bloco C","POP_TOTAL":17150,"score_final":0.0742,"total_nc":59.0,"nc_pendentes":22.0,"nc_expiradas":0.0,"autos_infracao":0.0,"taxa_sanamento":0.627,"total_interrupcoes":3.0,"emergenciais":1.0,"total_medicoes":9.0,"desconformes":2.0,"taxa_desconforme":0.222,"total_amostras":14.0,"colif_presente":0.0,"taxa_colif":0.0,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":1.631,"cloro_medio":2.0,"prestadora_producao":"Casal","prestadora_distribuicao":"Verde Ambiental","prestadora_esgoto":"Verde Ambiental","bloco_html":"Bloco C"},{"ranking":47,"MUN":"Palmeira dos Índios","MESOREGIAO":"Agreste","BLOCO":"Bloco B","POP_TOTAL":71574,"score_final":0.0737,"total_nc":50.0,"nc_pendentes":25.0,"nc_expiradas":0.0,"autos_infracao":0.0,"taxa_sanamento":0.5,"total_interrupcoes":40.0,"emergenciais":34.0,"total_medicoes":10.0,"desconformes":0.0,"taxa_desconforme":0.0,"total_amostras":0.0,"colif_presente":0.0,"taxa_colif":0.0,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":0.0,"cloro_medio":0.0,"prestadora_producao":"Casal","prestadora_distribuicao":"Conasa","prestadora_esgoto":"Conasa","bloco_html":"Bloco B"},{"ranking":48,"MUN":"Poço das Trincheiras","MESOREGIAO":"Sertão","BLOCO":"Bloco B","POP_TOTAL":12518,"score_final":0.0714,"total_nc":10.0,"nc_pendentes":3.0,"nc_expiradas":1.0,"autos_infracao":0.0,"taxa_sanamento":0.6,"total_interrupcoes":1.0,"emergenciais":1.0,"total_medicoes":0.0,"desconformes":0.0,"taxa_desconforme":0.0,"total_amostras":25.0,"colif_presente":3.0,"taxa_colif":0.12,"ecoli_presente":3.0,"taxa_ecoli":0.12,"turbidez_media":0.872,"cloro_medio":1.0,"prestadora_producao":"Casal","prestadora_distribuicao":"Conasa","prestadora_esgoto":"Conasa","bloco_html":"Bloco B"},{"ranking":49,"MUN":"Belo Monte","MESOREGIAO":"Sertão","BLOCO":"Bloco B","POP_TOTAL":5936,"score_final":0.07,"total_nc":41.0,"nc_pendentes":21.0,"nc_expiradas":0.0,"autos_infracao":0.0,"taxa_sanamento":0.341,"total_interrupcoes":4.0,"emergenciais":4.0,"total_medicoes":10.0,"desconformes":0.0,"taxa_desconforme":0.0,"total_amostras":0.0,"colif_presente":0.0,"taxa_colif":0.0,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":0.0,"cloro_medio":0.0,"prestadora_producao":"Casal","prestadora_distribuicao":"Conasa","prestadora_esgoto":"Conasa","bloco_html":"Bloco B"},{"ranking":50,"MUN":"Santana do Ipanema","MESOREGIAO":"Sertão","BLOCO":"Bloco B","POP_TOTAL":46220,"score_final":0.067,"total_nc":41.0,"nc_pendentes":0.0,"nc_expiradas":0.0,"autos_infracao":8.0,"taxa_sanamento":0.78,"total_interrupcoes":20.0,"emergenciais":19.0,"total_medicoes":10.0,"desconformes":3.0,"taxa_desconforme":0.3,"total_amostras":30.0,"colif_presente":0.0,"taxa_colif":0.0,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":2.45,"cloro_medio":1.011,"prestadora_producao":"Casal","prestadora_distribuicao":"Conasa","prestadora_esgoto":"Conasa","bloco_html":"Bloco B"},{"ranking":51,"MUN":"Atalaia","MESOREGIAO":"Leste","BLOCO":"Bloco A","POP_TOTAL":37512,"score_final":0.0624,"total_nc":69.0,"nc_pendentes":0.0,"nc_expiradas":0.0,"autos_infracao":0.0,"taxa_sanamento":0.826,"total_interrupcoes":31.0,"emergenciais":30.0,"total_medicoes":13.0,"desconformes":4.0,"taxa_desconforme":0.308,"total_amostras":0.0,"colif_presente":0.0,"taxa_colif":0.0,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":0.0,"cloro_medio":0.0,"prestadora_producao":"BRK Ambiental","prestadora_distribuicao":"BRK Ambiental","prestadora_esgoto":"BRK Ambiental","bloco_html":"Bloco A"},{"ranking":52,"MUN":"União dos Palmares","MESOREGIAO":"Leste","BLOCO":"Bloco C","POP_TOTAL":59280,"score_final":0.0623,"total_nc":99.0,"nc_pendentes":0.0,"nc_expiradas":0.0,"autos_infracao":20.0,"taxa_sanamento":0.798,"total_interrupcoes":19.0,"emergenciais":19.0,"total_medicoes":10.0,"desconformes":2.0,"taxa_desconforme":0.2,"total_amostras":0.0,"colif_presente":0.0,"taxa_colif":0.0,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":0.0,"cloro_medio":0.0,"prestadora_producao":"Verde Ambiental","prestadora_distribuicao":"Verde Ambiental","prestadora_esgoto":"Verde Ambiental","bloco_html":"Bloco C"},{"ranking":53,"MUN":"Novo Lino","MESOREGIAO":"Leste","BLOCO":"Bloco C","POP_TOTAL":10020,"score_final":0.0607,"total_nc":16.0,"nc_pendentes":0.0,"nc_expiradas":0.0,"autos_infracao":0.0,"taxa_sanamento":0.812,"total_interrupcoes":26.0,"emergenciais":21.0,"total_medicoes":10.0,"desconformes":3.0,"taxa_desconforme":0.3,"total_amostras":0.0,"colif_presente":0.0,"taxa_colif":0.0,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":0.0,"cloro_medio":0.0,"prestadora_producao":"Casal","prestadora_distribuicao":"Verde Ambiental","prestadora_esgoto":"Verde Ambiental","bloco_html":"Bloco C"},{"ranking":54,"MUN":"Delmiro Gouveia","MESOREGIAO":"Sertão","BLOCO":"Bloco B","POP_TOTAL":51318,"score_final":0.06,"total_nc":53.0,"nc_pendentes":0.0,"nc_expiradas":0.0,"autos_infracao":0.0,"taxa_sanamento":1.0,"total_interrupcoes":46.0,"emergenciais":45.0,"total_medicoes":10.0,"desconformes":0.0,"taxa_desconforme":0.0,"total_amostras":35.0,"colif_presente":10.0,"taxa_colif":0.286,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":4.8,"cloro_medio":1.809,"prestadora_producao":"Casal","prestadora_distribuicao":"Conasa","prestadora_esgoto":"Conasa","bloco_html":"Bloco B"},{"ranking":55,"MUN":"Colônia Leopoldina","MESOREGIAO":"Leste","BLOCO":"Bloco C","POP_TOTAL":15816,"score_final":0.0581,"total_nc":26.0,"nc_pendentes":0.0,"nc_expiradas":0.0,"autos_infracao":0.0,"taxa_sanamento":0.423,"total_interrupcoes":32.0,"emergenciais":30.0,"total_medicoes":0.0,"desconformes":0.0,"taxa_desconforme":0.0,"total_amostras":7.0,"colif_presente":0.0,"taxa_colif":0.0,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":2.053,"cloro_medio":1.279,"prestadora_producao":"Casal","prestadora_distribuicao":"Verde Ambiental","prestadora_esgoto":"Verde Ambiental","bloco_html":"Bloco C"},{"ranking":56,"MUN":"Junqueiro","MESOREGIAO":"Leste","BLOCO":"Bloco B","POP_TOTAL":23907,"score_final":0.0564,"total_nc":20.0,"nc_pendentes":0.0,"nc_expiradas":0.0,"autos_infracao":7.0,"taxa_sanamento":0.65,"total_interrupcoes":62.0,"emergenciais":61.0,"total_medicoes":9.0,"desconformes":0.0,"taxa_desconforme":0.0,"total_amostras":5.0,"colif_presente":0.0,"taxa_colif":0.0,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":0.1,"cloro_medio":1.75,"prestadora_producao":"Casal","prestadora_distribuicao":"Conasa","prestadora_esgoto":"Conasa","bloco_html":"Bloco B"},{"ranking":57,"MUN":"Olho d'Água das Flores","MESOREGIAO":"Sertão","BLOCO":"Bloco B","POP_TOTAL":20695,"score_final":0.0562,"total_nc":13.0,"nc_pendentes":4.0,"nc_expiradas":0.0,"autos_infracao":3.0,"taxa_sanamento":0.462,"total_interrupcoes":7.0,"emergenciais":7.0,"total_medicoes":0.0,"desconformes":0.0,"taxa_desconforme":0.0,"total_amostras":85.0,"colif_presente":3.0,"taxa_colif":0.035,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":1.427,"cloro_medio":1.47,"prestadora_producao":"Casal","prestadora_distribuicao":"Conasa","prestadora_esgoto":"Conasa","bloco_html":"Bloco B"},{"ranking":58,"MUN":"Quebrangulo","MESOREGIAO":"Agreste","BLOCO":"Bloco B","POP_TOTAL":11080,"score_final":0.0529,"total_nc":21.0,"nc_pendentes":0.0,"nc_expiradas":0.0,"autos_infracao":5.0,"taxa_sanamento":0.762,"total_interrupcoes":15.0,"emergenciais":13.0,"total_medicoes":10.0,"desconformes":0.0,"taxa_desconforme":0.0,"total_amostras":49.0,"colif_presente":8.0,"taxa_colif":0.163,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":2.268,"cloro_medio":2.059,"prestadora_producao":"Casal","prestadora_distribuicao":"Conasa","prestadora_esgoto":"Conasa","bloco_html":"Bloco B"},{"ranking":59,"MUN":"Anadia","MESOREGIAO":"Leste","BLOCO":"Bloco C","POP_TOTAL":13966,"score_final":0.0497,"total_nc":28.0,"nc_pendentes":12.0,"nc_expiradas":0.0,"autos_infracao":0.0,"taxa_sanamento":0.571,"total_interrupcoes":17.0,"emergenciais":14.0,"total_medicoes":0.0,"desconformes":0.0,"taxa_desconforme":0.0,"total_amostras":0.0,"colif_presente":0.0,"taxa_colif":0.0,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":0.0,"cloro_medio":0.0,"prestadora_producao":"Casal","prestadora_distribuicao":"Verde Ambiental","prestadora_esgoto":"Verde Ambiental","bloco_html":"Bloco C"},{"ranking":60,"MUN":"Mata Grande","MESOREGIAO":"Sertão","BLOCO":"Bloco B","POP_TOTAL":21844,"score_final":0.0495,"total_nc":31.0,"nc_pendentes":0.0,"nc_expiradas":0.0,"autos_infracao":0.0,"taxa_sanamento":1.0,"total_interrupcoes":4.0,"emergenciais":4.0,"total_medicoes":10.0,"desconformes":4.0,"taxa_desconforme":0.4,"total_amostras":0.0,"colif_presente":0.0,"taxa_colif":0.0,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":0.0,"cloro_medio":0.0,"prestadora_producao":"Casal","prestadora_distribuicao":"Conasa","prestadora_esgoto":"Conasa","bloco_html":"Bloco B"},{"ranking":61,"MUN":"São Brás","MESOREGIAO":"Agreste","BLOCO":"Bloco B","POP_TOTAL":6555,"score_final":0.0484,"total_nc":55.0,"nc_pendentes":0.0,"nc_expiradas":0.0,"autos_infracao":0.0,"taxa_sanamento":0.618,"total_interrupcoes":48.0,"emergenciais":45.0,"total_medicoes":0.0,"desconformes":0.0,"taxa_desconforme":0.0,"total_amostras":19.0,"colif_presente":0.0,"taxa_colif":0.0,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":1.341,"cloro_medio":1.842,"prestadora_producao":"Casal","prestadora_distribuicao":"Conasa","prestadora_esgoto":"Conasa","bloco_html":"Bloco B"},{"ranking":62,"MUN":"Olho d'Água Grande","MESOREGIAO":"Agreste","BLOCO":"Bloco B","POP_TOTAL":4330,"score_final":0.0445,"total_nc":10.0,"nc_pendentes":0.0,"nc_expiradas":0.0,"autos_infracao":5.0,"taxa_sanamento":0.5,"total_interrupcoes":2.0,"emergenciais":0.0,"total_medicoes":0.0,"desconformes":0.0,"taxa_desconforme":0.0,"total_amostras":0.0,"colif_presente":0.0,"taxa_colif":0.0,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":0.0,"cloro_medio":0.0,"prestadora_producao":"Casal","prestadora_distribuicao":"Conasa","prestadora_esgoto":"Conasa","bloco_html":"Bloco B"},{"ranking":63,"MUN":"Piranhas","MESOREGIAO":"Sertão","BLOCO":"Bloco B","POP_TOTAL":22609,"score_final":0.0435,"total_nc":12.0,"nc_pendentes":0.0,"nc_expiradas":0.0,"autos_infracao":0.0,"taxa_sanamento":1.0,"total_interrupcoes":20.0,"emergenciais":20.0,"total_medicoes":10.0,"desconformes":3.0,"taxa_desconforme":0.3,"total_amostras":0.0,"colif_presente":0.0,"taxa_colif":0.0,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":0.0,"cloro_medio":0.0,"prestadora_producao":"Casal","prestadora_distribuicao":"Conasa","prestadora_esgoto":"Conasa","bloco_html":"Bloco B"},{"ranking":64,"MUN":"Lagoa da Canoa","MESOREGIAO":"Agreste","BLOCO":"Sem Bloco","POP_TOTAL":18457,"score_final":0.0428,"total_nc":20.0,"nc_pendentes":0.0,"nc_expiradas":0.0,"autos_infracao":9.0,"taxa_sanamento":0.55,"total_interrupcoes":0.0,"emergenciais":0.0,"total_medicoes":0.0,"desconformes":0.0,"taxa_desconforme":0.0,"total_amostras":0.0,"colif_presente":0.0,"taxa_colif":0.0,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":0.0,"cloro_medio":0.0,"prestadora_producao":"Casal","prestadora_distribuicao":"Casal","prestadora_esgoto":"Sem informação","bloco_html":"Sem Bloco"},{"ranking":65,"MUN":"Traipu","MESOREGIAO":"Agreste","BLOCO":"Bloco B","POP_TOTAL":23565,"score_final":0.0426,"total_nc":9.0,"nc_pendentes":0.0,"nc_expiradas":0.0,"autos_infracao":0.0,"taxa_sanamento":1.0,"total_interrupcoes":54.0,"emergenciais":54.0,"total_medicoes":10.0,"desconformes":0.0,"taxa_desconforme":0.0,"total_amostras":40.0,"colif_presente":4.0,"taxa_colif":0.1,"ecoli_presente":2.0,"taxa_ecoli":0.05,"turbidez_media":1.639,"cloro_medio":0.908,"prestadora_producao":"Casal","prestadora_distribuicao":"Conasa","prestadora_esgoto":"Conasa","bloco_html":"Bloco B"},{"ranking":66,"MUN":"Craíbas","MESOREGIAO":"Agreste","BLOCO":"Sem Bloco","POP_TOTAL":25397,"score_final":0.0423,"total_nc":6.0,"nc_pendentes":3.0,"nc_expiradas":0.0,"autos_infracao":0.0,"taxa_sanamento":0.5,"total_interrupcoes":0.0,"emergenciais":0.0,"total_medicoes":0.0,"desconformes":0.0,"taxa_desconforme":0.0,"total_amostras":5.0,"colif_presente":0.0,"taxa_colif":0.0,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":0.1,"cloro_medio":1.0,"prestadora_producao":"Casal","prestadora_distribuicao":"Casal","prestadora_esgoto":"Sem informação","bloco_html":"Sem Bloco"},{"ranking":67,"MUN":"Mar Vermelho","MESOREGIAO":"Agreste","BLOCO":"Bloco C","POP_TOTAL":3155,"score_final":0.0392,"total_nc":26.0,"nc_pendentes":3.0,"nc_expiradas":0.0,"autos_infracao":0.0,"taxa_sanamento":0.885,"total_interrupcoes":34.0,"emergenciais":32.0,"total_medicoes":0.0,"desconformes":0.0,"taxa_desconforme":0.0,"total_amostras":20.0,"colif_presente":2.0,"taxa_colif":0.1,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":2.994,"cloro_medio":1.3,"prestadora_producao":"Casal","prestadora_distribuicao":"Verde Ambiental","prestadora_esgoto":"Verde Ambiental","bloco_html":"Bloco C"},{"ranking":68,"MUN":"Olho d'Água do Casado","MESOREGIAO":"Sertão","BLOCO":"Bloco B","POP_TOTAL":8349,"score_final":0.0371,"total_nc":1.0,"nc_pendentes":0.0,"nc_expiradas":0.0,"autos_infracao":0.0,"taxa_sanamento":1.0,"total_interrupcoes":3.0,"emergenciais":3.0,"total_medicoes":10.0,"desconformes":3.0,"taxa_desconforme":0.3,"total_amostras":0.0,"colif_presente":0.0,"taxa_colif":0.0,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":0.0,"cloro_medio":0.0,"prestadora_producao":"Casal","prestadora_distribuicao":"Conasa","prestadora_esgoto":"Conasa","bloco_html":"Bloco B"},{"ranking":69,"MUN":"Olivença","MESOREGIAO":"Sertão","BLOCO":"Bloco B","POP_TOTAL":10812,"score_final":0.0356,"total_nc":10.0,"nc_pendentes":0.0,"nc_expiradas":0.0,"autos_infracao":0.0,"taxa_sanamento":0.9,"total_interrupcoes":7.0,"emergenciais":4.0,"total_medicoes":0.0,"desconformes":0.0,"taxa_desconforme":0.0,"total_amostras":24.0,"colif_presente":2.0,"taxa_colif":0.083,"ecoli_presente":2.0,"taxa_ecoli":0.083,"turbidez_media":4.525,"cloro_medio":0.876,"prestadora_producao":"Casal","prestadora_distribuicao":"Conasa","prestadora_esgoto":"Conasa","bloco_html":"Bloco B"},{"ranking":70,"MUN":"Taquarana","MESOREGIAO":"Agreste","BLOCO":"Bloco C","POP_TOTAL":19032,"score_final":0.0336,"total_nc":56.0,"nc_pendentes":2.0,"nc_expiradas":0.0,"autos_infracao":0.0,"taxa_sanamento":0.679,"total_interrupcoes":17.0,"emergenciais":17.0,"total_medicoes":9.0,"desconformes":0.0,"taxa_desconforme":0.0,"total_amostras":20.0,"colif_presente":0.0,"taxa_colif":0.0,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":1.48,"cloro_medio":1.475,"prestadora_producao":"Casal","prestadora_distribuicao":"Verde Ambiental","prestadora_esgoto":"Verde Ambiental","bloco_html":"Bloco C"},{"ranking":71,"MUN":"Jaramataia","MESOREGIAO":"Sertão","BLOCO":"Bloco B","POP_TOTAL":4985,"score_final":0.032,"total_nc":14.0,"nc_pendentes":4.0,"nc_expiradas":0.0,"autos_infracao":0.0,"taxa_sanamento":0.643,"total_interrupcoes":1.0,"emergenciais":1.0,"total_medicoes":10.0,"desconformes":0.0,"taxa_desconforme":0.0,"total_amostras":10.0,"colif_presente":0.0,"taxa_colif":0.0,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":39.27,"cloro_medio":0.75,"prestadora_producao":"Casal","prestadora_distribuicao":"Conasa","prestadora_esgoto":"Conasa","bloco_html":"Bloco B"},{"ranking":72,"MUN":"São Miguel dos Campos","MESOREGIAO":"Leste","BLOCO":"Bloco B","POP_TOTAL":51990,"score_final":0.0304,"total_nc":99.0,"nc_pendentes":0.0,"nc_expiradas":0.0,"autos_infracao":0.0,"taxa_sanamento":0.727,"total_interrupcoes":23.0,"emergenciais":11.0,"total_medicoes":21.0,"desconformes":0.0,"taxa_desconforme":0.0,"total_amostras":0.0,"colif_presente":0.0,"taxa_colif":0.0,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":0.0,"cloro_medio":0.0,"prestadora_producao":"Conasa","prestadora_distribuicao":"Conasa","prestadora_esgoto":"Conasa","bloco_html":"Bloco B"},{"ranking":73,"MUN":"Estrela de Alagoas","MESOREGIAO":"Agreste","BLOCO":"Sem Bloco","POP_TOTAL":15429,"score_final":0.0282,"total_nc":6.0,"nc_pendentes":0.0,"nc_expiradas":0.0,"autos_infracao":2.0,"taxa_sanamento":0.667,"total_interrupcoes":0.0,"emergenciais":0.0,"total_medicoes":0.0,"desconformes":0.0,"taxa_desconforme":0.0,"total_amostras":0.0,"colif_presente":0.0,"taxa_colif":0.0,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":0.0,"cloro_medio":0.0,"prestadora_producao":"Casal","prestadora_distribuicao":"Casal","prestadora_esgoto":"Casal","bloco_html":"Sem Bloco"},{"ranking":74,"MUN":"Paripueira","MESOREGIAO":"Leste","BLOCO":"Bloco A","POP_TOTAL":13835,"score_final":0.0229,"total_nc":23.0,"nc_pendentes":0.0,"nc_expiradas":0.0,"autos_infracao":4.0,"taxa_sanamento":0.826,"total_interrupcoes":16.0,"emergenciais":16.0,"total_medicoes":0.0,"desconformes":0.0,"taxa_desconforme":0.0,"total_amostras":30.0,"colif_presente":0.0,"taxa_colif":0.0,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":1.342,"cloro_medio":2.0,"prestadora_producao":"Casal","prestadora_distribuicao":"BRK Ambiental","prestadora_esgoto":"BRK Ambiental","bloco_html":"Bloco A"},{"ranking":75,"MUN":"Porto Calvo","MESOREGIAO":"Leste","BLOCO":"Bloco C","POP_TOTAL":24071,"score_final":0.0223,"total_nc":27.0,"nc_pendentes":5.0,"nc_expiradas":0.0,"autos_infracao":0.0,"taxa_sanamento":0.815,"total_interrupcoes":10.0,"emergenciais":9.0,"total_medicoes":10.0,"desconformes":0.0,"taxa_desconforme":0.0,"total_amostras":10.0,"colif_presente":0.0,"taxa_colif":0.0,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":6.216,"cloro_medio":0.764,"prestadora_producao":"Verde Ambiental","prestadora_distribuicao":"Verde Ambiental","prestadora_esgoto":"Verde Ambiental","bloco_html":"Bloco C"},{"ranking":76,"MUN":"Porto Real do Colégio","MESOREGIAO":"Leste","BLOCO":"Bloco B","POP_TOTAL":20082,"score_final":0.022,"total_nc":55.0,"nc_pendentes":5.0,"nc_expiradas":0.0,"autos_infracao":0.0,"taxa_sanamento":0.909,"total_interrupcoes":16.0,"emergenciais":12.0,"total_medicoes":9.0,"desconformes":0.0,"taxa_desconforme":0.0,"total_amostras":30.0,"colif_presente":1.0,"taxa_colif":0.033,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":3.014,"cloro_medio":1.647,"prestadora_producao":"Conasa","prestadora_distribuicao":"Conasa","prestadora_esgoto":"Conasa","bloco_html":"Bloco B"},{"ranking":77,"MUN":"Senador Rui Palmeira","MESOREGIAO":"Sertão","BLOCO":"Bloco B","POP_TOTAL":12303,"score_final":0.0219,"total_nc":4.0,"nc_pendentes":0.0,"nc_expiradas":0.0,"autos_infracao":0.0,"taxa_sanamento":0.75,"total_interrupcoes":5.0,"emergenciais":5.0,"total_medicoes":0.0,"desconformes":0.0,"taxa_desconforme":0.0,"total_amostras":7.0,"colif_presente":0.0,"taxa_colif":0.0,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":0.0,"cloro_medio":1.01,"prestadora_producao":"Casal","prestadora_distribuicao":"Conasa","prestadora_esgoto":"Conasa","bloco_html":"Bloco B"},{"ranking":78,"MUN":"São José da Tapera","MESOREGIAO":"Sertão","BLOCO":"Bloco B","POP_TOTAL":30604,"score_final":0.0215,"total_nc":11.0,"nc_pendentes":0.0,"nc_expiradas":0.0,"autos_infracao":0.0,"taxa_sanamento":1.0,"total_interrupcoes":20.0,"emergenciais":17.0,"total_medicoes":0.0,"desconformes":0.0,"taxa_desconforme":0.0,"total_amostras":32.0,"colif_presente":2.0,"taxa_colif":0.062,"ecoli_presente":1.0,"taxa_ecoli":0.031,"turbidez_media":1.62,"cloro_medio":1.325,"prestadora_producao":"Casal","prestadora_distribuicao":"Conasa","prestadora_esgoto":"Conasa","bloco_html":"Bloco B"},{"ranking":79,"MUN":"Água Branca","MESOREGIAO":"Sertão","BLOCO":"Bloco B","POP_TOTAL":19008,"score_final":0.0156,"total_nc":26.0,"nc_pendentes":3.0,"nc_expiradas":0.0,"autos_infracao":0.0,"taxa_sanamento":0.885,"total_interrupcoes":11.0,"emergenciais":10.0,"total_medicoes":0.0,"desconformes":0.0,"taxa_desconforme":0.0,"total_amostras":0.0,"colif_presente":0.0,"taxa_colif":0.0,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":0.0,"cloro_medio":0.0,"prestadora_producao":"Casal","prestadora_distribuicao":"Conasa","prestadora_esgoto":"Conasa","bloco_html":"Bloco B"},{"ranking":80,"MUN":"Japaratinga","MESOREGIAO":"Leste","BLOCO":"Bloco C","POP_TOTAL":9219,"score_final":0.0149,"total_nc":18.0,"nc_pendentes":0.0,"nc_expiradas":0.0,"autos_infracao":1.0,"taxa_sanamento":0.944,"total_interrupcoes":6.0,"emergenciais":2.0,"total_medicoes":16.0,"desconformes":1.0,"taxa_desconforme":0.062,"total_amostras":20.0,"colif_presente":0.0,"taxa_colif":0.0,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":1.36,"cloro_medio":0.34,"prestadora_producao":"Casal","prestadora_distribuicao":"Verde Ambiental","prestadora_esgoto":"Verde Ambiental","bloco_html":"Bloco C"},{"ranking":81,"MUN":"Jacuípe","MESOREGIAO":"Leste","BLOCO":"Bloco C","POP_TOTAL":5352,"score_final":0.0142,"total_nc":33.0,"nc_pendentes":0.0,"nc_expiradas":0.0,"autos_infracao":1.0,"taxa_sanamento":0.879,"total_interrupcoes":10.0,"emergenciais":8.0,"total_medicoes":10.0,"desconformes":0.0,"taxa_desconforme":0.0,"total_amostras":176.0,"colif_presente":0.0,"taxa_colif":0.0,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":0.0,"cloro_medio":1.474,"prestadora_producao":"Casal","prestadora_distribuicao":"Verde Ambiental","prestadora_esgoto":"Verde Ambiental","bloco_html":"Bloco C"},{"ranking":82,"MUN":"Maravilha","MESOREGIAO":"Sertão","BLOCO":"Bloco B","POP_TOTAL":9534,"score_final":0.0133,"total_nc":6.0,"nc_pendentes":0.0,"nc_expiradas":0.0,"autos_infracao":0.0,"taxa_sanamento":0.833,"total_interrupcoes":0.0,"emergenciais":0.0,"total_medicoes":0.0,"desconformes":0.0,"taxa_desconforme":0.0,"total_amostras":0.0,"colif_presente":0.0,"taxa_colif":0.0,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":0.0,"cloro_medio":0.0,"prestadora_producao":"Casal","prestadora_distribuicao":"Conasa","prestadora_esgoto":"Conasa","bloco_html":"Bloco B"},{"ranking":83,"MUN":"Chã Preta","MESOREGIAO":"Leste","BLOCO":"Bloco C","POP_TOTAL":5910,"score_final":0.0122,"total_nc":26.0,"nc_pendentes":0.0,"nc_expiradas":0.0,"autos_infracao":1.0,"taxa_sanamento":0.885,"total_interrupcoes":6.0,"emergenciais":6.0,"total_medicoes":0.0,"desconformes":0.0,"taxa_desconforme":0.0,"total_amostras":0.0,"colif_presente":0.0,"taxa_colif":0.0,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":0.0,"cloro_medio":0.0,"prestadora_producao":"Verde Ambiental","prestadora_distribuicao":"Verde Ambiental","prestadora_esgoto":"Verde Ambiental","bloco_html":"Bloco C"},{"ranking":84,"MUN":"Pariconha","MESOREGIAO":"Sertão","BLOCO":"Bloco B","POP_TOTAL":10573,"score_final":0.0052,"total_nc":9.0,"nc_pendentes":0.0,"nc_expiradas":0.0,"autos_infracao":0.0,"taxa_sanamento":1.0,"total_interrupcoes":14.0,"emergenciais":12.0,"total_medicoes":0.0,"desconformes":0.0,"taxa_desconforme":0.0,"total_amostras":0.0,"colif_presente":0.0,"taxa_colif":0.0,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":0.0,"cloro_medio":0.0,"prestadora_producao":"Casal","prestadora_distribuicao":"Conasa","prestadora_esgoto":"Conasa","bloco_html":"Bloco B"},{"ranking":85,"MUN":"Carneiros","MESOREGIAO":"Sertão","BLOCO":"Bloco B","POP_TOTAL":8999,"score_final":0.0051,"total_nc":5.0,"nc_pendentes":0.0,"nc_expiradas":0.0,"autos_infracao":0.0,"taxa_sanamento":1.0,"total_interrupcoes":6.0,"emergenciais":5.0,"total_medicoes":0.0,"desconformes":0.0,"taxa_desconforme":0.0,"total_amostras":52.0,"colif_presente":1.0,"taxa_colif":0.019,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":3.347,"cloro_medio":1.108,"prestadora_producao":"Casal","prestadora_distribuicao":"Conasa","prestadora_esgoto":"Conasa","bloco_html":"Bloco B"},{"ranking":86,"MUN":"Jundiá","MESOREGIAO":"Leste","BLOCO":"Bloco C","POP_TOTAL":4092,"score_final":0.0037,"total_nc":38.0,"nc_pendentes":0.0,"nc_expiradas":0.0,"autos_infracao":0.0,"taxa_sanamento":1.0,"total_interrupcoes":10.0,"emergenciais":7.0,"total_medicoes":9.0,"desconformes":0.0,"taxa_desconforme":0.0,"total_amostras":0.0,"colif_presente":0.0,"taxa_colif":0.0,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":0.0,"cloro_medio":0.0,"prestadora_producao":"Casal","prestadora_distribuicao":"Verde Ambiental","prestadora_esgoto":"Verde Ambiental","bloco_html":"Bloco C"},{"ranking":87,"MUN":"Jacaré dos Homens","MESOREGIAO":"Sertão","BLOCO":"Bloco B","POP_TOTAL":5083,"score_final":0.0015,"total_nc":4.0,"nc_pendentes":0.0,"nc_expiradas":0.0,"autos_infracao":0.0,"taxa_sanamento":1.0,"total_interrupcoes":4.0,"emergenciais":4.0,"total_medicoes":9.0,"desconformes":0.0,"taxa_desconforme":0.0,"total_amostras":5.0,"colif_presente":0.0,"taxa_colif":0.0,"ecoli_presente":0.0,"taxa_ecoli":0.0,"turbidez_media":0.0,"cloro_medio":0.5,"prestadora_producao":"Casal","prestadora_distribuicao":"Conasa","prestadora_esgoto":"Conasa","bloco_html":"Bloco B"}];
+
+// ── PESOS ──
+let W = {nc:35,inter:30,qualidade:15,pressao:12,sanamento:8};
+const WCFG = [
+  {k:'nc',    l:'NCs críticas',       d:'Pendentes + Expiradas + Autos (todos registros)'},
+  {k:'inter', l:'Interrupções',       d:'Total de interrupções de serviço (Ano 2026)'},
+  {k:'qualidade',l:'Qualidade da água',d:'Taxa de coliformes + E.Coli (Ano 2026)'},
+  {k:'pressao',  l:'Pressão desconf.', d:'Medições fora do padrão (todos registros)'},
+  {k:'sanamento',l:'Não sanamento',   d:'Proporção de NCs não resolvidas'},
+];
+
+let DATA = BASE.map(d=>({...d}));
+let SF = 'score_final', SD = -1, SEL = -1;
+const UF = {};
+
+// ── HELPERS ──
+const n = v => isNaN(v)||v==null ? '—' : Math.round(v);
+const pct = v => Math.round(v*100)+'%';
+const sc = v => v>=0.25?'#B91C1C':v>=0.12?'#B45309':'#0A7A4B';
+
+function bb(b){
+  const m={A:'bA',B:'bB',C:'bC','Sem Bloco':'bS'};
+  const k=b.replace('Bloco ','');
+  return `<span class="bb ${m[b]||'bS'}">${k==='Sem Bloco'?'S/B':k}</span>`;
+}
+function pc(p){
+  if(!p||p==='Sem informação') return `<span class="pc pSem">—</span>`;
+  const c=p.includes('BRK')?'BRK':p.includes('Verde')?'Verde':p.includes('Conasa')?'Conasa':'Casal';
+  const s=p.includes('BRK')?'BRK':p.includes('Verde')?'Verde Amb.':p.includes('Conasa')?'Conasa':'Casal';
+  return `<span class="pc p${c}">${s}</span>`;
+}
+function mcl(v,w=0.5,m=0.2){return v>=w?'mw':v>=m?'mm2':v>0?'mg':'mna';}
+
+// ── KPIs ──
+function renderKpis(d){
+  const tNC=d.reduce((s,r)=>s+r.total_nc,0);
+  const tI=d.reduce((s,r)=>s+r.total_interrupcoes,0);
+  const wC=d.filter(r=>r.total_amostras>0);
+  const aC=wC.length?wC.reduce((s,r)=>s+r.taxa_colif,0)/wC.length:0;
+  const avg=(d.reduce((s,r)=>s+r.score_final,0)/Math.max(d.length,1)).toFixed(3);
+  document.getElementById('kpis').innerHTML=`
+    <div class="kpi" style="--kc:#B91C1C"><div class="kpi-label">Score médio</div><div class="kpi-val">${avg}</div><div class="kpi-sub">${d.length} municípios</div></div>
+    <div class="kpi" style="--kc:#1D4ED8"><div class="kpi-label">Total NCs</div><div class="kpi-val">${tNC.toLocaleString('pt-BR')}</div><div class="kpi-sub">todos registros</div></div>
+    <div class="kpi" style="--kc:#0F766E"><div class="kpi-label">Interrupções 2026</div><div class="kpi-val">${tI.toLocaleString('pt-BR')}</div><div class="kpi-sub">emergenciais incl.</div></div>
+    <div class="kpi" style="--kc:#B45309"><div class="kpi-label">Colif. médio</div><div class="kpi-val">${pct(aC)}</div><div class="kpi-sub">municípios c/ amostras</div></div>
+    <div class="kpi" style="--kc:#7C2D12"><div class="kpi-label">Score ≥ 0.20</div><div class="kpi-val">${d.filter(r=>r.score_final>=0.2).length}</div><div class="kpi-sub">muito críticos</div></div>
+  `;
+}
+
+// ── FILTER ──
+function getF(){
+  const m=document.getElementById('fM').value;
+  const b=document.getElementById('fB').value;
+  const p=document.getElementById('fP').value;
+  const t=+document.getElementById('fTop').value;
+  const s=document.getElementById('fS').value.toLowerCase().trim();
+  let d=[...DATA];
+  if(m) d=d.filter(r=>r.MESOREGIAO===m);
+  if(b) d=d.filter(r=>r.bloco_html===b);
+  if(p) d=d.filter(r=>[r.prestadora_producao,r.prestadora_distribuicao,r.prestadora_esgoto].some(x=>x&&x.includes(p)));
+  if(s) d=d.filter(r=>r.MUN.toLowerCase().includes(s));
+  d.sort((a,c)=>{
+    let av=a[SF],cv=c[SF];
+    return typeof av==='string'?SD*(av>cv?1:-1):SD*(av-cv);
+  });
+  return t>0?d.slice(0,t):d;
+}
+
+// ── RENDER TABLE ──
+function render(){
+  const d=getF();
+  renderKpis(d);
+  document.getElementById('cnt').textContent=d.length+' municípios';
+  const mxNC=Math.max(...DATA.map(r=>r.total_nc),1);
+  const mxI=Math.max(...DATA.map(r=>r.total_interrupcoes),1);
+
+  document.getElementById('tbody').innerHTML=d.map((r,i)=>{
+    const rc=r.ranking===1?'r1':r.ranking===2?'r2':r.ranking===3?'r3':'rn';
+    const bw=Math.round(r.score_final/0.5*100);
+    const cv=r.total_amostras>0?`<span class="${mcl(r.taxa_colif,0.4,0.15)}">${pct(r.taxa_colif)}</span>`:`<span class="mna">—</span>`;
+    const pv=r.total_medicoes>0?`<span class="${mcl(r.taxa_desconforme,0.5,0.25)}">${pct(r.taxa_desconforme)}</span>`:`<span class="mna">—</span>`;
+    return `<tr onclick="sel(${i})" class="${SEL===i?'sel':''}">
+      <td><span class="rb ${rc}">${r.ranking}</span></td>
+      <td><span class="mn">${r.MUN}</span><span class="mm">${r.MESOREGIAO}</span></td>
+      <td>${bb(r.bloco_html)}</td>
+      <td>${pc(r.prestadora_distribuicao)}</td>
+      <td><div class="sb"><div class="sb-bg"><div class="sb-fill" style="width:${bw}%;background:${sc(r.score_final)}"></div></div><span class="sv" style="color:${sc(r.score_final)}">${r.score_final.toFixed(3)}</span></div></td>
+      <td><span class="mv ${r.total_nc>0?'mm2':''}">${r.total_nc>0?r.total_nc:'—'}</span></td>
+      <td><span class="mv ${r.nc_pendentes>0?'mw':''}">${r.nc_pendentes>0?r.nc_pendentes:'—'}</span></td>
+      <td><span class="mv ${r.autos_infracao>0?'mw':''}">${r.autos_infracao>0?r.autos_infracao:'—'}</span></td>
+      <td><span class="mv">${r.total_interrupcoes>0?r.total_interrupcoes:'—'}</span></td>
+      <td class="mv">${pv}</td>
+      <td class="mv">${cv}</td>
+    </tr>`;
+  }).join('');
+  updHdr();
+}
+
+// ── SELECT / DETAIL ──
+function sel(i){
+  const d=getF();
+  if(SEL===i){SEL=-1;renderDp(null);render();return;}
+  SEL=i;render();renderDp(d[i]);
+}
+
+function renderDp(r){
+  const p=document.getElementById('dp');
+  if(!r){p.innerHTML='<div class="dp-empty"><div class="dp-empty-ico">📋</div><p>Clique em um município para ver o detalhamento completo.</p></div>';return;}
+  const rc=r.ranking===1?'r1':r.ranking===2?'r2':r.ranking===3?'r3':'rn';
+  const mxI=Math.max(...DATA.map(x=>x.total_interrupcoes),1);
+  const mxNC=Math.max(...DATA.map(x=>x.total_nc),1);
+
+  const g=(label,val,max,color,fmt)=>`<div>
+    <div class="gr">
+      <div><div class="glbl">${label}</div><div class="gtrack"><div class="gfill" style="width:${max>0?Math.min(100,Math.round(val/max*100)):0}%;background:${color}"></div></div></div>
+      <div class="gval">${fmt}</div>
+    </div></div>`;
+
+  p.innerHTML=`
+    <div class="dp-hd">
+      <div class="dp-top">
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+            <span class="rb ${rc}">${r.ranking}</span>
+            <div>
+              <div class="dp-name">${r.MUN}</div>
+              <div class="dp-meta">${r.MESOREGIAO} · Pop. ${r.POP_TOTAL.toLocaleString('pt-BR')} · ${bb(r.bloco_html)}</div>
+            </div>
+          </div>
+          <div class="dp-score" style="color:${sc(r.score_final)}">${r.score_final.toFixed(4)}</div>
+          <div class="dp-score-lbl">score de criticidade</div>
+        </div>
+        <button class="dp-close" onclick="SEL=-1;renderDp(null);render()">✕</button>
+      </div>
+    </div>
+    <div class="dp-bd">
+      <div class="sec">
+        <div class="sec-lbl">Indicadores</div>
+        <div class="gauges">
+          ${g('NCs total',r.total_nc,mxNC,'#1D4ED8',r.total_nc>0?r.total_nc:'—')}
+          ${g('NC pendentes',r.nc_pendentes,Math.max(r.total_nc,1),'#B45309',r.nc_pendentes>0?r.nc_pendentes:'—')}
+          ${g('Autos de infração',r.autos_infracao,Math.max(r.total_nc,1),'#B91C1C',r.autos_infracao>0?r.autos_infracao:'—')}
+          ${g('Interrupções 2026',r.total_interrupcoes,mxI,'#0F766E',r.total_interrupcoes>0?r.total_interrupcoes:'—')}
+          ${g('Pressão desconf.',r.taxa_desconforme,1,'#7C2D12',r.total_medicoes>0?pct(r.taxa_desconforme):'—')}
+          ${g('Coliformes',r.taxa_colif,1,'#B91C1C',r.total_amostras>0?pct(r.taxa_colif):'—')}
+          ${g('E.Coli',r.taxa_ecoli,1,'#6D28D9',r.total_amostras>0?pct(r.taxa_ecoli):'—')}
+        </div>
+      </div>
+      <div class="sec">
+        <div class="sec-lbl">Dados adicionais</div>
+        <div class="dp-grid">
+          <div class="ds"><div class="ds-lbl">Medições pressão</div><div class="ds-val">${r.total_medicoes>0?r.total_medicoes:'—'}</div></div>
+          <div class="ds"><div class="ds-lbl">Amostras água</div><div class="ds-val">${r.total_amostras>0?r.total_amostras:'—'}</div></div>
+          <div class="ds"><div class="ds-lbl">Turbidez média</div><div class="ds-val ${r.turbidez_media>5?'w':r.turbidez_media>2?'m':''}">${r.turbidez_media>0?r.turbidez_media.toFixed(1)+' uT':'—'}</div></div>
+          <div class="ds"><div class="ds-lbl">Cloro médio</div><div class="ds-val ${r.cloro_medio>0&&r.cloro_medio<0.2?'w':''}">${r.cloro_medio>0?r.cloro_medio.toFixed(2)+' mg/L':'—'}</div></div>
+        </div>
+      </div>
+      <div class="sec">
+        <div class="sec-lbl">Prestadoras</div>
+        <div class="dp-grid">
+          <div class="ds"><div class="ds-lbl">Produção</div><div class="dp-prest">${pc(r.prestadora_producao)}</div></div>
+          <div class="ds"><div class="ds-lbl">Distribuição</div><div class="dp-prest">${pc(r.prestadora_distribuicao)}</div></div>
+          <div class="ds" style="grid-column:span 2"><div class="ds-lbl">Esgoto</div><div class="dp-prest">${pc(r.prestadora_esgoto)}</div></div>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ── SORT ──
+function srt(f){
+  if(SF===f) SD*=-1; else {SF=f;SD=f==='MUN'?1:-1;}
+  SEL=-1;renderDp(null);render();
+}
+function updHdr(){
+  document.querySelectorAll('thead th[id]').forEach(th=>{
+    const f=th.id.replace('h-','');
+    th.className=f===SF?(SD===1?'sa':'sd'):'';
+  });
+}
+
+// ── PESOS MODAL ──
+function openPesos(){
+  let h='';
+  WCFG.forEach(c=>h+=`<div class="pr">
+    <div><div class="pnome">${c.l}</div><div class="pdesc">${c.d}</div></div>
+    <input type="range" id="ps-${c.k}" min="0" max="100" value="${W[c.k]}" step="1"
+      oninput="document.getElementById('pv-${c.k}').textContent=this.value+'%';updPT()">
+    <div class="pval" id="pv-${c.k}">${W[c.k]}%</div>
+  </div>`);
+  h+=`<div class="ptotal"><span>Total</span><span class="ptv ok" id="ptotal">100%</span></div>`;
+  document.getElementById('pesos-form').innerHTML=h;
+  document.getElementById('pesos-modal').classList.add('on');
+}
+function updPT(){
+  const t=WCFG.reduce((s,c)=>s+parseInt(document.getElementById('ps-'+c.k).value),0);
+  const el=document.getElementById('ptotal');
+  el.textContent=t+'%';el.className='ptv '+(t===100?'ok':'err');
+}
+function applyPesos(){
+  const t=WCFG.reduce((s,c)=>s+parseInt(document.getElementById('ps-'+c.k).value),0);
+  if(t!==100){toast('Soma deve ser 100%');return;}
+  WCFG.forEach(c=>W[c.k]=parseInt(document.getElementById('ps-'+c.k).value));
+  reScore();closePesos();toast('Pesos atualizados!');
+}
+function closePesos(){document.getElementById('pesos-modal').classList.remove('on');}
+
+// ── RECALC SCORES ──
+function reScore(){
+  const mm=arr=>{const mn=Math.min(...arr),mx=Math.max(...arr);if(mx===mn)return arr.map(()=>0);return arr.map(v=>(v-mn)/(mx-mn));};
+  const sNC=mm(DATA.map(r=>r.nc_pendentes+r.nc_expiradas+r.autos_infracao));
+  const sI=mm(DATA.map(r=>r.total_interrupcoes));
+  const sP=mm(DATA.map(r=>r.taxa_desconforme));
+  const sS=mm(DATA.map(r=>r.taxa_sanamento)).map(v=>1-v);
+  const sQ=mm(DATA.map(r=>r.taxa_colif+r.taxa_ecoli));
+  const pw=W.nc/100,pi=W.inter/100,pp=W.pressao/100,ps=W.sanamento/100,pq=W.qualidade/100;
+  DATA.forEach((r,i)=>r.score_final=+(sNC[i]*pw+sI[i]*pi+sP[i]*pp+sS[i]*ps+sQ[i]*pq).toFixed(4));
+  DATA.sort((a,b)=>b.score_final-a.score_final);
+  DATA.forEach((r,i)=>r.ranking=i+1);
+  SEL=-1;renderDp(null);render();
+}
+
+// ── UPDATE MODAL ──
+function openUpd(){document.getElementById('upd-modal').classList.add('on');}
+function closeUpd(){document.getElementById('upd-modal').classList.remove('on');}
+function gotFile(type,inp){
+  if(inp.files[0]){
+    UF[type]=inp.files[0];
+    const up=inp.closest('.up');
+    up.classList.add('ok');
+    up.querySelector('.up-ok').textContent='✓ '+inp.files[0].name;
+  }
+}
+
+async function recalc(){
+  if(!Object.keys(UF).length){toast('Importe pelo menos um arquivo');return;}
+  const btn=document.getElementById('btn-calc');
+  btn.disabled=true;btn.textContent='⏳ Processando...';
+  const prog=document.getElementById('prog');
+  prog.style.width='20%';
+  try{
+    const parsed={};
+    for(const [type,file] of Object.entries(UF)){
+      parsed[type]=parseCSV(await readTxt(file));
+    }
+    prog.style.width='55%';
+
+    // Construir mapa municipio → dados base
+    const map={};
+    BASE.forEach(r=>map[r.MUN.toUpperCase().trim()]={...r});
+
+    // ── NC ──
+    if(parsed.nc){
+      const nc={};
+      parsed.nc.forEach(row=>{
+        const m=normMun((row['Município']||row['MUNICÍPIO']||'').toUpperCase().trim());
+        if(!nc[m]) nc[m]={total:0,pend:0,exp:0,auto:0,san:0};
+        nc[m].total++;
+        const st=(row['Status']||'').trim();
+        if(st==='Pendente') nc[m].pend++;
+        else if(st==='Expirado') nc[m].exp++;
+        else if(st==='Auto de Infração') nc[m].auto++;
+        else if(st==='Sanado') nc[m].san++;
+      });
+      Object.keys(map).forEach(k=>{
+        const d=nc[k]||{total:0,pend:0,exp:0,auto:0,san:0};
+        map[k].total_nc=d.total;map[k].nc_pendentes=d.pend;
+        map[k].nc_expiradas=d.exp;map[k].autos_infracao=d.auto;
+        map[k].taxa_sanamento=d.total>0?+(d.san/d.total).toFixed(3):0;
+      });
+    }
+
+    // ── INTERRUPÇÕES 2026 ──
+    if(parsed.inter){
+      const inter={};
+      parsed.inter.forEach(row=>{
+        const y=extrY(row['DATA DO ENVIO']||row['data do envio']||'');
+        if(y!==2026) return;
+        const m=normMun((row['MUNICÍPIO']||row['Município']||'').toUpperCase().trim());
+        if(!inter[m]) inter[m]={total:0,emg:0};
+        inter[m].total++;
+        if((row['TIPO']||'').trim().toLowerCase()==='emergencial') inter[m].emg++;
+      });
+      Object.keys(map).forEach(k=>{
+        const d=inter[k]||{total:0,emg:0};
+        map[k].total_interrupcoes=d.total;map[k].emergenciais=d.emg;
+      });
+    }
+
+    // ── QUALIDADE 2026 ──
+    if(parsed.qa){
+      const qa={};
+      parsed.qa.forEach(row=>{
+        const y=extrY(row['Data da Coleta']||'');
+        if(y!==2026) return;
+        const m=normMun((row['Município']||row['municipio']||'').toUpperCase().trim());
+        if(!qa[m]) qa[m]={a:0,c:0,e:0};
+        qa[m].a++;
+        if((row['Coliformes Totais']||'').trim()==='Presente') qa[m].c++;
+        if((row['E. Coli']||'').trim()==='Presente') qa[m].e++;
+      });
+      Object.keys(map).forEach(k=>{
+        const d=qa[k];
+        if(d){
+          map[k].total_amostras=d.a;map[k].colif_presente=d.c;map[k].ecoli_presente=d.e;
+          map[k].taxa_colif=+(d.c/d.a).toFixed(3);map[k].taxa_ecoli=+(d.e/d.a).toFixed(3);
+        } else {
+          map[k].total_amostras=0;map[k].colif_presente=0;map[k].ecoli_presente=0;
+          map[k].taxa_colif=0;map[k].taxa_ecoli=0;
+        }
+      });
+    }
+
+    // ── PRESSÃO (CSV Google Maps) ──
+    // CSV de pressão (Painel_de_Fiscalização_M_Pressão_Google_Maps) não tem coluna município
+    // Apenas Coord, Prestadora, P Dashboard — não é possível agregar por município
+    // Se o usuário enviar o MP.xlsx convertido em CSV com coluna Município, funciona
+    if(parsed.mp){
+      const mpMap={};
+      parsed.mp.forEach(row=>{
+        const m=(row['Município']||row['municipio']||'').toUpperCase().trim();
+        if(!m) return;
+        if(!mpMap[m]) mpMap[m]={total:0,desc:0};
+        mpMap[m].total++;
+        const conf=(row['Conformidade']||row['conformidade']||'').trim();
+        if(conf==='Desconforme') mpMap[m].desc++;
+      });
+      if(Object.keys(mpMap).length>0){
+        Object.keys(map).forEach(k=>{
+          const d=mpMap[k];
+          if(d){map[k].total_medicoes=d.total;map[k].desconformes=d.desc;map[k].taxa_desconforme=+(d.desc/d.total).toFixed(3);}
+        });
+      }
+    }
+
+    DATA=Object.values(map);
+    reScore();
+    prog.style.width='100%';
+    setTimeout(()=>prog.style.width='0%',700);
+    closeUpd();
+    const now=new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'});
+    document.getElementById('upd-lbl').textContent='Atualizado: '+now;
+    toast('Ranking atualizado com sucesso!');
+  }catch(e){toast('Erro: '+e.message);prog.style.width='0%';}
+  btn.disabled=false;
+  btn.innerHTML='<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 8a6 6 0 1 1 1.5 4"/><path d="M2 12V8h4"/></svg> Recalcular ranking';
+}
+
+function readTxt(f){return new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=rej;r.readAsText(f,'utf-8');});}
+
+function parseCSV(txt){
+  const lines=txt.replace(/\r/g,'').split('\n').filter(Boolean);
+  if(!lines.length) return [];
+  const sep=lines[0].includes(';')?';':',';
+  const hdr=lines[0].replace(/^\uFEFF/,'').split(sep).map(h=>h.replace(/^"|"$/g,'').trim());
+  return lines.slice(1).map(line=>{
+    const vals=[];let cur='',inQ=false;
+    for(const c of line){if(c==='"'){inQ=!inQ;}else if(c===sep&&!inQ){vals.push(cur.trim());cur='';}else cur+=c;}
+    vals.push(cur.trim());
+    const obj={};hdr.forEach((h,i)=>obj[h]=(vals[i]||'').replace(/^"|"$/g,''));
+    return obj;
+  });
+}
+
+function extrY(s){const m=s.match(/de\s+(\d{4})/)||s.match(/(\d{4})/);return m?+m[1]:0;}
+// Normaliza nomes com variações: "MACEIÓ (BAIRRO X)" → "MACEIÓ"
+function normMun(s){if(s.includes('MACEIÓ')) return 'MACEIÓ'; return s;}
+
+// ── TOAST ──
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('on');setTimeout(()=>t.classList.remove('on'),3000);}
+
+// ── CLOSE ON OVERLAY ──
+['upd-modal','pesos-modal'].forEach(id=>document.getElementById(id).addEventListener('click',function(e){if(e.target===this)this.classList.remove('on');}));
+
+// ── INIT ──
+render();
+</script>
+</body>
+</html>
