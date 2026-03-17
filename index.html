@@ -187,10 +187,14 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
   </div>
   <div class="topbar-center">
     <div class="topbar-title">Ranking de Municípios Críticos</div>
-    <div class="topbar-sub">Gerência de Fiscalização Operacional de Saneamento (Gefsan)</div>
+    <div class="topbar-sub">87 municípios regulados · NCs (todos) · Interrupções 2026 · Qualidade da Água 2026 · Pressão (todos)</div>
   </div>
   <div class="topbar-right">
     <span class="tag-ciclo" id="upd-lbl">Base: mar/2026</span>
+    <button class="btn-sm" onclick="resetData()" title="Redefinir para dados base">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 2L8 6"/><path d="M2 8a6 6 0 1 0 1.5-4"/><path d="M2 4v4h4"/></svg>
+      Redefinir
+    </button>
     <button class="btn-sm" onclick="openUpd()">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 8a6 6 0 1 1 1.5 4"/><path d="M2 12V8h4"/></svg>
       Atualizar
@@ -702,6 +706,17 @@ function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t
 
 // ── CLOSE ON OVERLAY ──
 ['upd-modal','pesos-modal'].forEach(id=>document.getElementById(id).addEventListener('click',function(e){if(e.target===this)this.classList.remove('on');}));
+
+// ── RESET ──
+function resetData(){
+  if(!confirm('Redefinir para os dados base? As atualizações do GitHub serão descartadas.')) return;
+  DATA=BASE.map(d=>({...d}));
+  W={nc:35,inter:30,qualidade:15,pressao:12,sanamento:8};
+  SEL=-1;renderDp(null);
+  document.getElementById('upd-lbl').textContent='Base: mar/2026';
+  render();
+  toast('Dados redefinidos para o padrão inicial.');
+}
 
 // ── INIT ──
 render();
