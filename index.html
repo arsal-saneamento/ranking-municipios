@@ -257,38 +257,23 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
 <!-- MODAL ATUALIZAR -->
 <div class="overlay" id="upd-modal">
 <div class="modal wide">
-  <h3>Atualizar dados</h3>
-  <p>Importe os CSVs exportados dos painéis. O ranking é recalculado no navegador — nenhum dado é enviado para servidor.</p>
+  <h3>Atualizar dados do GitHub</h3>
+  <p>Os CSVs serão buscados diretamente do repositório <strong>arsal-saneamento/ranking-municipios</strong>. Certifique-se de que os arquivos na pasta <code style="background:var(--bg);padding:1px 5px;border-radius:4px;font-size:11px">data/</code> estão atualizados antes de continuar.</p>
   <div class="info-box">
-    <strong>Filtros automáticos:</strong><br>
-    · NCs: <strong>todos os registros</strong> do painel de fiscalização<br>
-    · Interrupções: <strong>Ano 2026</strong> (campo "Data do Envio")<br>
-    · Qualidade da Água: <strong>Ano 2026</strong> (campo "Data da Coleta")<br>
-    · Pressão: <strong>todos os registros</strong> disponíveis
+    <strong>Arquivos buscados automaticamente:</strong><br>
+    · Painel de Fiscalização_Lista de NC_Tabela.csv<br>
+    · Painel de Fiscalização_M Pressão_Google Maps.csv<br>
+    · Painel de Interrupções de Serviços_Base de Dados_Tabela.csv<br>
+    · Painel de Qualidade da Água_Vigilância_Tabela.csv
   </div>
-  <div class="upload-grid">
-    <div class="up" id="up-nc"><input type="file" accept=".csv" onchange="gotFile('nc',this)">
-      <div class="up-ico">📋</div><span class="up-lbl">Lista de NCs</span>
-      <div class="up-sub">Painel de Fiscalização · .csv</div><div class="up-ok"></div>
-    </div>
-    <div class="up" id="up-inter"><input type="file" accept=".csv" onchange="gotFile('inter',this)">
-      <div class="up-ico">⚡</div><span class="up-lbl">Interrupções de Serviços</span>
-      <div class="up-sub">Base de Dados · .csv</div><div class="up-ok"></div>
-    </div>
-    <div class="up" id="up-mp"><input type="file" accept=".csv" onchange="gotFile('mp',this)">
-      <div class="up-ico">💧</div><span class="up-lbl">Medições de Pressão</span>
-      <div class="up-sub">Google Maps · .csv</div><div class="up-ok"></div>
-    </div>
-    <div class="up" id="up-qa"><input type="file" accept=".csv" onchange="gotFile('qa',this)">
-      <div class="up-ico">🔬</div><span class="up-lbl">Qualidade da Água</span>
-      <div class="up-sub">Vigilância · .csv</div><div class="up-ok"></div>
-    </div>
+  <div id="fetch-status" style="display:none;margin-bottom:14px">
+    <div style="display:grid;gap:6px" id="fetch-items"></div>
   </div>
   <div class="modal-actions">
     <button class="btn-cancel" onclick="closeUpd()">Cancelar</button>
     <button class="btn-calc" id="btn-calc" onclick="recalc()">
       <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 8a6 6 0 1 1 1.5 4"/><path d="M2 12V8h4"/></svg>
-      Recalcular ranking
+      Buscar e recalcular
     </button>
   </div>
 </div>
@@ -325,7 +310,6 @@ const WCFG = [
 
 let DATA = BASE.map(d=>({...d}));
 let SF = 'score_final', SD = -1, SEL = -1;
-const UF = {};
 
 // ── HELPERS ──
 const n = v => isNaN(v)||v==null ? '—' : Math.round(v);
@@ -533,30 +517,65 @@ function reScore(){
   SEL=-1;renderDp(null);render();
 }
 
-// ── UPDATE MODAL ──
-function openUpd(){document.getElementById('upd-modal').classList.add('on');}
-function closeUpd(){document.getElementById('upd-modal').classList.remove('on');}
-function gotFile(type,inp){
-  if(inp.files[0]){
-    UF[type]=inp.files[0];
-    const up=inp.closest('.up');
-    up.classList.add('ok');
-    up.querySelector('.up-ok').textContent='✓ '+inp.files[0].name;
-  }
+// ── URLs GitHub raw ──
+const GITHUB_BASE='https://raw.githubusercontent.com/arsal-saneamento/ranking-municipios/main/data/';
+const GITHUB_FILES={
+  nc: GITHUB_BASE+'Painel%20de%20Fiscaliza%C3%A7%C3%A3o_Lista%20de%20NC_Tabela.csv',
+  mp: GITHUB_BASE+'Painel%20de%20Fiscaliza%C3%A7%C3%A3o_M%20Press%C3%A3o_Google%20Maps.csv',
+  inter: GITHUB_BASE+'Painel%20de%20Interrup%C3%A7%C3%B5es%20de%20Servi%C3%A7os_Base%20de%20Dados_Tabela.csv',
+  qa: GITHUB_BASE+'Painel%20de%20Qualidade%20da%20%C3%81gua_Vigil%C3%A2ncia_Tabela.csv'
+};
+
+function setFetchItem(key,label,state){
+  const el=document.getElementById('fi-'+key);
+  if(!el) return;
+  const icons={wait:'⏳',ok:'✅',err:'❌'};
+  el.innerHTML=`<span style="font-size:11px">${icons[state]} ${label}</span>`;
 }
 
+// ── UPDATE MODAL ──
+function openUpd(){
+  document.getElementById('fetch-status').style.display='none';
+  document.getElementById('fetch-items').innerHTML='';
+  document.getElementById('upd-modal').classList.add('on');
+}
+function closeUpd(){document.getElementById('upd-modal').classList.remove('on');}
+
 async function recalc(){
-  if(!Object.keys(UF).length){toast('Importe pelo menos um arquivo');return;}
   const btn=document.getElementById('btn-calc');
-  btn.disabled=true;btn.textContent='⏳ Processando...';
+  btn.disabled=true;
+  btn.innerHTML='⏳ Buscando...';
   const prog=document.getElementById('prog');
-  prog.style.width='20%';
+  prog.style.width='10%';
+
+  // Mostrar status de cada arquivo
+  const labels={nc:'Lista de NCs',mp:'Medições de Pressão',inter:'Interrupções de Serviços',qa:'Qualidade da Água'};
+  const statusEl=document.getElementById('fetch-status');
+  const itemsEl=document.getElementById('fetch-items');
+  statusEl.style.display='block';
+  itemsEl.innerHTML=Object.keys(GITHUB_FILES).map(k=>
+    `<div id="fi-${k}" style="font-size:11px;color:var(--muted)">⏳ ${labels[k]}</div>`
+  ).join('');
+
   try{
     const parsed={};
-    for(const [type,file] of Object.entries(UF)){
-      parsed[type]=parseCSV(await readTxt(file));
+    let done=0;
+    for(const [type,url] of Object.entries(GITHUB_FILES)){
+      try{
+        const res=await fetch(url);
+        if(!res.ok) throw new Error(`HTTP ${res.status}`);
+        const txt=await res.text();
+        parsed[type]=parseCSV(txt);
+        done++;
+        prog.style.width=(10+done/4*60)+'%';
+        setFetchItem(type,labels[type],'ok');
+      }catch(e){
+        setFetchItem(type,labels[type]+' — '+e.message,'err');
+        // continua com os outros mesmo se um falhar
+      }
     }
-    prog.style.width='55%';
+    if(!Object.keys(parsed).length) throw new Error('Nenhum arquivo foi carregado');
+    prog.style.width='75%';
 
     // Construir mapa municipio → dados base
     const map={};
@@ -659,7 +678,6 @@ async function recalc(){
   btn.innerHTML='<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 8a6 6 0 1 1 1.5 4"/><path d="M2 12V8h4"/></svg> Recalcular ranking';
 }
 
-function readTxt(f){return new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=rej;r.readAsText(f,'utf-8');});}
 
 function parseCSV(txt){
   const lines=txt.replace(/\r/g,'').split('\n').filter(Boolean);
